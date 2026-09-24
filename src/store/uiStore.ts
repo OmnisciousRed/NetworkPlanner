@@ -81,6 +81,9 @@ function initialTheme(): 'light' | 'dark' {
   } catch {
     /* ignore */
   }
+  // embedding hosts may stamp an explicit theme on the root element
+  const stamped = typeof document !== 'undefined' ? document.documentElement.dataset.theme : undefined
+  if (stamped === 'light' || stamped === 'dark') return stamped
   if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
   return 'light'
 }
