@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+coverage
+.vite
+test-results
+playwright-report
+.DS_Store
+*.tsbuildinfo
