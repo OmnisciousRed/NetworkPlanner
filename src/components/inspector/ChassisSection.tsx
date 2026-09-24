@@ -8,8 +8,21 @@ const FFS: MainboardFormFactor[] = ['Mini-ITX', 'mATX', 'ATX', 'E-ATX', 'SSI-EEB
 
 export function ChassisParamsForm({ params, onChange }: { params: ChassisParams; onChange: (patch: Partial<ChassisParams>) => void }) {
   const rack = params.formFactor === 'rack'
+  const enclosure = !!params.driveEnclosure
   return (
     <div className="space-y-2.5">
+      <SwitchField
+        label="Nur Festplattengehäuse (ohne Mainboard)"
+        hint="z. B. HDD-Einschub oder JBOD – die Laufwerke werden per Kabel mit einem Server verbunden"
+        checked={enclosure}
+        onChange={(v) =>
+          onChange(
+            v
+              ? { driveEnclosure: true, psuBays: 0, expansionSlots: 0, bays35: Math.max(params.bays35, 4) }
+              : { driveEnclosure: false, psuBays: Math.max(1, params.psuBays), mainboardFormFactors: params.mainboardFormFactors.length ? params.mainboardFormFactors : ['Mini-ITX', 'mATX', 'ATX'] },
+          )
+        }
+      />
       <Row>
         <Field label="Bauform">
           <SelectField
@@ -70,7 +83,7 @@ export function ChassisParamsForm({ params, onChange }: { params: ChassisParams;
       </Row>
       <Row className="grid-cols-3">
         <Field label="Netzteile">
-          <NumberField value={params.psuBays} min={1} max={4} onChange={(v) => onChange({ psuBays: v })} />
+          <NumberField value={params.psuBays} min={enclosure ? 0 : 1} max={4} onChange={(v) => onChange({ psuBays: v })} />
         </Field>
         <Field label="Lüfter">
           <NumberField value={params.fanSlots} min={0} max={12} onChange={(v) => onChange({ fanSlots: v })} />
@@ -79,49 +92,53 @@ export function ChassisParamsForm({ params, onChange }: { params: ChassisParams;
           <SelectField value={params.fanSizeMm} options={[40, 60, 80, 92, 120, 140].map((x) => ({ value: x, label: `${x}` }))} onChange={(v) => onChange({ fanSizeMm: v })} />
         </Field>
       </Row>
-      <Field label="Mainboard-Formfaktoren">
-        <div className="flex flex-wrap gap-1">
-          {FFS.map((f) => {
-            const on = params.mainboardFormFactors.includes(f)
-            return (
-              <button
-                key={f}
-                type="button"
-                className={cn('cursor-pointer rounded border px-1.5 py-0.5 text-xs', on ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-accent')}
-                onClick={() => {
-                  const next = on ? params.mainboardFormFactors.filter((x) => x !== f) : [...params.mainboardFormFactors, f]
-                  if (next.length) onChange({ mainboardFormFactors: next })
-                }}
-              >
-                {f}
-              </button>
-            )
-          })}
-        </div>
-      </Field>
-      <Row>
-        <Field label="Kartenhöhe">
-          <SelectField
-            value={params.maxCardHeight}
-            options={[
-              { value: 'full', label: 'Full Height' },
-              { value: 'low-profile', label: 'nur Low Profile' },
-            ]}
-            onChange={(v) => onChange({ maxCardHeight: v })}
-          />
-        </Field>
-        <Field label="Max. Kartenlänge">
-          <NumberField value={params.maxCardLengthMm} unit="mm" min={100} max={400} onChange={(v) => onChange({ maxCardLengthMm: v })} />
-        </Field>
-      </Row>
-      <Row>
-        <Field label="Erweiterungsslots">
-          <NumberField value={params.expansionSlots} min={0} max={11} onChange={(v) => onChange({ expansionSlots: v })} />
-        </Field>
-        <Field label="Max. CPU-TDP">
-          <NumberField value={params.maxCpuTdpW} unit="W" min={35} max={600} onChange={(v) => onChange({ maxCpuTdpW: v })} />
-        </Field>
-      </Row>
+      {!enclosure && (
+        <>
+          <Field label="Mainboard-Formfaktoren">
+            <div className="flex flex-wrap gap-1">
+              {FFS.map((f) => {
+                const on = params.mainboardFormFactors.includes(f)
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    className={cn('cursor-pointer rounded border px-1.5 py-0.5 text-xs', on ? 'border-primary bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-accent')}
+                    onClick={() => {
+                      const next = on ? params.mainboardFormFactors.filter((x) => x !== f) : [...params.mainboardFormFactors, f]
+                      if (next.length) onChange({ mainboardFormFactors: next })
+                    }}
+                  >
+                    {f}
+                  </button>
+                )
+              })}
+            </div>
+          </Field>
+          <Row>
+            <Field label="Kartenhöhe">
+              <SelectField
+                value={params.maxCardHeight}
+                options={[
+                  { value: 'full', label: 'Full Height' },
+                  { value: 'low-profile', label: 'nur Low Profile' },
+                ]}
+                onChange={(v) => onChange({ maxCardHeight: v })}
+              />
+            </Field>
+            <Field label="Max. Kartenlänge">
+              <NumberField value={params.maxCardLengthMm} unit="mm" min={100} max={400} onChange={(v) => onChange({ maxCardLengthMm: v })} />
+            </Field>
+          </Row>
+          <Row>
+            <Field label="Erweiterungsslots">
+              <NumberField value={params.expansionSlots} min={0} max={11} onChange={(v) => onChange({ expansionSlots: v })} />
+            </Field>
+            <Field label="Max. CPU-TDP">
+              <NumberField value={params.maxCpuTdpW} unit="W" min={35} max={600} onChange={(v) => onChange({ maxCpuTdpW: v })} />
+            </Field>
+          </Row>
+        </>
+      )}
       <Row>
         <Field label="Leergewicht">
           <NumberField value={params.weightKg} unit="kg" step={0.5} min={0.5} onChange={(v) => onChange({ weightKg: v })} />

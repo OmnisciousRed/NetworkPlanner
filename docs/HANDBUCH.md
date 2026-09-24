@@ -101,8 +101,10 @@ Oben in der Werkzeugleiste auf **+** („Neues Gerät bauen“) klicken. Wähle:
 | 2U Rack | der Allrounder, 12 × 3,5" |
 | 2U Rack (24 × 2,5" NVMe) | All-Flash-Server |
 | 10" 2U Mini-ITX | kleiner Server für ein 10-Zoll-Mini-Rack (siehe [10-Zoll-Racks](#zehn-zoll)) |
+| 10" 2U HDD-Einschub | Festplattengehäuse **ohne Mainboard** für Mini-Racks, 4 × 3,5" |
 | 4U Rack | Storage-Server mit 24 Schächten, Platz für Grafikkarten |
-| Custom | alles selbst festlegen: Höhe **1–12 HE**, Rackbreite 19"/10", Schächte, Netzteile, Lüfter, Mainboard-Formate |
+| 2U JBOD (12 × 3,5") | Festplatten-Erweiterung **ohne Mainboard**, per SAS-Kabel am Server |
+| Custom | alles selbst festlegen: Höhe **1–12 HE**, Rackbreite 19"/10", Schächte, Netzteile, Lüfter, Mainboard-Formate – oder „Nur Festplattengehäuse“ |
 
 Mit **Grundausstattung einsetzen** werden passende Netzteile und Lüfter gleich eingebaut.
 Die Gehäusewerte kannst du später im Inspector unter **Gehäuse** jederzeit ändern.
@@ -291,6 +293,57 @@ Mit **Custom** kannst du auch eigene 10-Zoll-Gehäuse anlegen: dort **Rackbreite
 - **Gewicht:** Die Zuladung kleiner Racks ist begrenzt – ein Blick auf den Gewichtsbalken lohnt sich.
 - **Strom:** Netzteile von Mini-PCs und Raspberry Pis brauchen Steckdosen – eine 10"-Steckdosenleiste einplanen.
 
+## Wenn ein Teil fehlt {#fehlende-teile}
+
+Die Bibliotheken enthalten viele gängige Teile, aber nicht jedes Modell. Fehlt etwas, legst du es selbst an –
+danach verhält es sich wie jedes andere Teil (Rack, Gewicht, Strom, Ports, Prüfung). Welcher Weg passt, hängt
+davon ab, **was** fehlt:
+
+| Was fehlt? | Weg |
+| --- | --- |
+| Ein Bauteil **im** Server (CPU, SSD, Netzwerkkarte, Lüfter …) | Hardware Builder → Bibliothek → **+ Eigene** → Reiter *Bauteil* |
+| Ein Mainboard | **+ Eigene** → Reiter *Mainboard* (die Steckplätze werden automatisch erzeugt) |
+| Ein Gehäuse mit anderen Schächten | **Custom**-Gehäuse beim Anlegen oder im Inspector unter *Gehäuse* ändern |
+| Ein eigenständiges Rack-Gerät (Switch, USV, fertiges NAS …) | Rack Builder → **Eigenes Rack-Gerät anlegen** (oder Netzwerk-Designer → **+ Eigenes Gerät**) |
+| Ein Festplatten-Einschub / JBOD, in den du selbst Platten steckst | Hardware Builder → Gehäuse **10" 2U HDD-Einschub**, **2U JBOD** oder **Custom** mit *Nur Festplattengehäuse* |
+
+Im Rack Builder findest du unten in der Teileliste den Kasten **„Passendes Teil nicht dabei?“** mit den beiden
+wichtigsten Wegen.
+
+### Beispiel: Festplatten-Einschub für den eigenen Server {#hdd-einschub}
+
+Viele Mini-Rack-Server bestehen aus zwei Teilen: dem eigentlichen Server (Mainboard, CPU, RAM) und einem
+separaten **Festplatten-Einschub**, dessen Platten per SATA- oder SAS-Kabel am Server hängen.
+
+1. Hardware Builder → **+** („Neues Gerät bauen“).
+2. Gehäuse **10" 2U HDD-Einschub** wählen (4 × 3,5"). Der Gerätetyp springt auf *Storage*.
+   Passt die Vorlage nicht, **Custom** wählen, **Nur Festplattengehäuse (ohne Mainboard)** einschalten und
+   Rackbreite, Höhe (HE), Zahl der 3,5"/2,5"-Schächte, Lüfter und Netzteile selbst eintragen.
+3. **Erstellen** – das Gehäuse hat keine Mainboard-Fläche, nur Schächte.
+4. Festplatten aus der Bibliothek in die Schächte ziehen (oder doppelklicken). Kapazität, Gewicht und Strom werden
+   mitgerechnet. Die Prüfung meldet **kein** fehlendes Mainboard, sondern nur den Hinweis „Laufwerksgehäuse ohne Mainboard“.
+5. Im **Rack Builder** den Einschub aus „Nicht im Rack“ direkt unter oder über den Server ziehen.
+6. Hat der Einschub kein eigenes Netzteil (Strom kommt vom Server), lass *Netzteile* auf 0.
+
+Die Kabelverbindung zwischen Einschub und Server wird nicht als Netzwerkverbindung gezeichnet – notiere sie bei Bedarf
+im Inspector unter *Notizen*. Im Server selbst brauchst du genug SATA-Anschlüsse oder eine HBA-Karte
+(bei SAS / JBOD eine HBA mit externen Anschlüssen).
+
+### Beispiel: fertiges Gerät, das es nicht gibt {#eigenes-geraet}
+
+Für Geräte, die du nicht zerlegen willst (z. B. ein bestimmter 10"-Switch oder ein fertiges NAS):
+
+1. Rack Builder → **Eigenes Rack-Gerät anlegen** (öffnet direkt den Reiter *Gerät*).
+2. Name, Typ (z. B. *NAS* oder *Storage*) und Bauform eintragen:
+   - **Rack**: Rackbreite **10 Zoll** oder **19 Zoll** und Höhe in HE wählen.
+   - **Desktop/Tower**: Breite in mm und bei **Im Rack (Boden)** die Höhe wählen, die es auf dem Einlegeboden belegt.
+3. Tiefe, Leistung, Gewicht und bei NAS/Storage die **Laufwerksschächte** angeben.
+4. **Ports** festlegen (z. B. 2 × 2,5G RJ45) – sie erscheinen später im Netzwerk-Designer.
+5. **Gerät anlegen** – es steht jetzt in der Rack- und in der Netzwerk-Bibliothek unter „Eigene“ bzw. seiner Gruppe.
+
+Unter den Maßen steht, ob das Gerät in ein 10-Zoll-Rack passt. Eigene Vorlagen werden mit dem Projekt gespeichert
+und beim JSON-Export mitgenommen.
+
 ## Netzwerk-Designer {#netzwerk}
 
 ![Netzwerk-Designer, physische Ansicht](screenshots/network-physical.png)
@@ -467,6 +520,10 @@ Exportiere wichtige Projekte als JSON.
 Die Begründung steht am Mauszeiger und unten in der Kompatibilitätsprüfung. Meist fehlt das Mainboard, der Sockel
 oder die RAM-Generation passt nicht, oder die Karte ist zu lang bzw. zu hoch für das Gehäuse.
 
+**Das Teil, das ich brauche, gibt es nicht.**
+Selbst anlegen – siehe [Wenn ein Teil fehlt](#fehlende-teile). Für einen Festplatten-Einschub nimmst du das Gehäuse
+*10" 2U HDD-Einschub* oder *Custom* mit „Nur Festplattengehäuse“.
+
 **Der Download funktioniert nicht.**
 In manchen eingebetteten Ansichten blockiert der Browser Downloads. Nimm im Export-Fenster **Kopieren**
 und füge den Text in eine Datei ein.
@@ -491,6 +548,7 @@ Strg+Z oder der Pfeil oben rechts. Beim Löschen erscheint außerdem eine Meldun
 | DAC | kurzes Direktkabel mit festen SFP-Steckern |
 | PoE | Strom über das Netzwerkkabel (z. B. für Access Points, Kameras) |
 | HBA / RAID-Controller | Karte zum Anschließen vieler Festplatten |
+| JBOD | „Just a Bunch of Disks“ – Festplattengehäuse ohne eigenen Rechner, hängt per Kabel am Server |
 | NVMe / M.2 / U.2 | schnelle SSDs; M.2 = Riegel auf dem Mainboard, U.2 = 2,5"-Bauform |
 | DIMM | Arbeitsspeicher-Riegel |
 | ECC / RDIMM / UDIMM | fehlerkorrigierender RAM / registrierter Server-RAM / normaler RAM |

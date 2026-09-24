@@ -235,8 +235,15 @@ export function analyzeBuild(build: HardwareBuild): Issue[] {
   const byId = new Map(build.components.map((c) => [c.id, c]))
   const boards = build.components.filter((c): c is ComponentOf<'mainboard'> => c.kind === 'mainboard')
   const board = boards.find((b) => b.mount) ?? boards[0]
+  const enclosure = !!build.chassis.params.driveEnclosure
 
-  if (!boards.length) push({ key: 'no-board', level: 'error', message: 'Kein Mainboard eingebaut' })
+  if (enclosure)
+    push({
+      key: 'enclosure',
+      level: 'info',
+      message: 'Laufwerksgehäuse ohne Mainboard: Die Laufwerke sitzen auf der Backplane und werden per Kabel (SATA, SAS oder USB) mit einem Server verbunden.',
+    })
+  else if (!boards.length) push({ key: 'no-board', level: 'error', message: 'Kein Mainboard eingebaut' })
   if (boards.length > 1) push({ key: 'multi-board', level: 'warning', message: 'Mehrere Mainboards im Gehäuse', componentIds: boards.map((b) => b.id) })
 
   // slot occupancy
@@ -326,7 +333,8 @@ export function analyzeBuild(build: HardwareBuild): Issue[] {
   }
 
   // storage & controllers
-  if (!drives.length) push({ key: 'no-storage', level: 'warning', message: 'Kein Laufwerk eingebaut (Boot-Laufwerk fehlt)' })
+  if (!drives.length)
+    push(enclosure ? { key: 'no-storage', level: 'warning', message: 'Noch keine Festplatten in den Schächten' } : { key: 'no-storage', level: 'warning', message: 'Kein Laufwerk eingebaut (Boot-Laufwerk fehlt)' })
   const controllers = storageControllers(build)
   for (const ctrl of controllers) {
     if (ctrl.used > ctrl.capacity)
@@ -334,6 +342,7 @@ export function analyzeBuild(build: HardwareBuild): Issue[] {
   }
   for (const d of drives) {
     if (d.mount?.parentId !== 'chassis') continue // M.2 on board is directly attached
+    if (enclosure) continue // attached to the enclosure's backplane
     const link = build.links.find((l) => l.fromId === d.id)
     if (!link) {
       push({ key: `drive-unlinked-${d.id}`, level: 'warning', message: `${d.name} ist mit keinem Controller verbunden`, componentIds: [d.id] })
@@ -349,7 +358,9 @@ export function analyzeBuild(build: HardwareBuild): Issue[] {
 
   // power
   const power = estimateBuildPower(build)
-  if (!power.psuCount) push({ key: 'no-psu', level: 'error', message: 'Kein Netzteil eingebaut' })
+  if (!power.psuCount && enclosure && !build.chassis.params.psuBays)
+    push({ key: 'no-psu', level: 'info', message: 'Kein eigenes Netzteil – die Laufwerke werden vom Server bzw. einem externen Netzteil versorgt' })
+  else if (!power.psuCount) push({ key: 'no-psu', level: 'error', message: 'Kein Netzteil eingebaut' })
   else {
     const cap = power.psuRedundantW
     if (power.maxW > power.psuTotalW)
@@ -374,7 +385,7 @@ export function analyzeBuild(build: HardwareBuild): Issue[] {
 
   // network
   const ports = installed.flatMap((c) => c.ports ?? [])
-  if (!ports.length) push({ key: 'no-net', level: 'warning', message: 'Keine Netzwerkschnittstelle vorhanden' })
+  if (!ports.length && !enclosure) push({ key: 'no-net', level: 'warning', message: 'Keine Netzwerkschnittstelle vorhanden' })
 
   // raid cache protection
   const raid = installed.find((c) => c.kind === 'raid')

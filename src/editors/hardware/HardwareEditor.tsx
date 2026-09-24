@@ -370,7 +370,15 @@ export function HardwareEditor() {
           {hardwareView === 'interior' && !build.components.length && (
             <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-lg border bg-card/95 px-4 py-2 text-sm shadow">
               <Grid3x3 className="mr-1.5 inline size-4 text-primary" />
-              Leeres Gehäuse – ziehe zuerst ein <b>Mainboard</b> aus der Bibliothek hinein.
+              {build.chassis.params.driveEnclosure ? (
+                <>
+                  Festplattengehäuse – ziehe <b>Festplatten</b> aus der Bibliothek in die Schächte.
+                </>
+              ) : (
+                <>
+                  Leeres Gehäuse – ziehe zuerst ein <b>Mainboard</b> aus der Bibliothek hinein.
+                </>
+              )}
             </div>
           )}
         </div>

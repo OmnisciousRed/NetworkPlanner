@@ -4,7 +4,7 @@ import type { ComponentTemplate } from '@/models'
 import { formatSpeed } from '@/models'
 import { COMPONENT_CATALOG, COMPONENT_GROUP_ORDER } from '@/data/componentCatalog'
 import { useProjectStore } from '@/store/projectStore'
-import { useUiStore } from '@/store/uiStore'
+import { openCustomDialog, useUiStore } from '@/store/uiStore'
 import { addComponentFromTemplate } from '@/store/actions/hardware'
 import { deleteCustomTemplate } from '@/store/actions/project'
 import { ComponentGraphic, HardwareDefs } from '@/components/hardware/graphics'
@@ -58,7 +58,6 @@ const Thumb = memo(function Thumb({ t }: { t: ComponentTemplate }) {
 export function ComponentLibrary({ deviceId }: { deviceId?: string }) {
   const custom = useProjectStore((s) => s.project.customTemplates.components)
   const setUi = useUiStore((s) => s.set)
-  const openDialog = useUiStore((s) => s.openDialog)
   const [q, setQ] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Mainboard: false })
 
@@ -85,7 +84,7 @@ export function ComponentLibrary({ deviceId }: { deviceId?: string }) {
       <div className="border-b p-2.5">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Komponenten</span>
-          <Button size="xs" variant="ghost" onClick={() => openDialog('customComponent')} title="Eigene Komponente definieren">
+          <Button size="xs" variant="ghost" onClick={() => openCustomDialog('component')} title="Eigene Komponente definieren">
             <Plus /> Eigene
           </Button>
         </div>

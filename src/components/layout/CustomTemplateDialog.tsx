@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
-import type { ComponentKind, ComponentTemplate, DeviceKind, DeviceTemplate, MainboardSpecs, PortGroupSpec } from '@/models'
-import { CONNECTORS, DEVICE_HEIGHTS_U, SPEED_OPTIONS, formatSpeed, uid } from '@/models'
+import type { ComponentKind, ComponentTemplate, DeviceKind, DeviceTemplate, MainboardSpecs, PortGroupSpec, RackStandard } from '@/models'
+import { CONNECTORS, DEVICE_HEIGHTS_U, INNER_MM, SPEED_OPTIONS, formatSpeed, uid } from '@/models'
 import { COMPONENT_CATALOG } from '@/data/componentCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { useUiStore, toast } from '@/store/uiStore'
@@ -54,7 +54,11 @@ function SpecForm({ kind, specs, onChange }: { kind: ComponentKind; specs: Recor
 export function CustomTemplateDialog() {
   const open = useUiStore((s) => s.dialogs.customComponent)
   const openDialog = useUiStore((s) => s.openDialog)
-  const [tab, setTab] = useState('component')
+  const initialTab = useUiStore((s) => s.customDialogTab)
+  const [tab, setTab] = useState<string>(initialTab)
+  useEffect(() => {
+    if (open) setTab(initialTab)
+  }, [open, initialTab])
 
   // component
   const [kind, setKind] = useState<ComponentKind>('custom')
@@ -74,7 +78,11 @@ export function CustomTemplateDialog() {
   const [dKind, setDKind] = useState<DeviceKind>('server')
   const [dFf, setDFf] = useState<DeviceTemplate['formFactor']>('rack')
   const [dU, setDU] = useState(2)
-  const [dWidth, setDWidth] = useState(430)
+  const [dStd, setDStd] = useState<RackStandard>('19')
+  /** rack height of a desktop device standing on a shelf (0 = not for the rack) */
+  const [dShelfU, setDShelfU] = useState(0)
+  const [dBays, setDBays] = useState(4)
+  const [dWidth, setDWidth] = useState(200)
   const [dDepth, setDDepth] = useState(600)
   const [dPower, setDPower] = useState(150)
   const [dWeight, setDWeight] = useState(12)
@@ -159,6 +167,7 @@ export function CustomTemplateDialog() {
     close()
   }
 
+  const hasBays = dKind === 'nas' || dKind === 'storage'
   const createDevice = () => {
     const t: DeviceTemplate = {
       id: uid('dtpl'),
@@ -166,13 +175,15 @@ export function CustomTemplateDialog() {
       name: dName,
       group: 'EIGENE',
       formFactor: dFf,
-      heightU: dFf === 'rack' ? dU : undefined,
+      rackStandard: dFf === 'rack' ? dStd : undefined,
+      heightU: dFf === 'rack' ? dU : dShelfU || undefined,
+      widthMm: dFf === 'rack' ? undefined : dWidth,
       depthMm: dDepth,
       weightKg: dWeight,
       powerW: dPower,
+      driveBays: hasBays ? dBays : undefined,
       ports: groups,
       custom: true,
-      description: `${dWidth} mm breit`,
     }
     addCustomDeviceTemplate(t)
     toast(`Gerät „${dName}“ in Netzwerk- und Rack-Bibliothek verfügbar`, 'success')
@@ -323,12 +334,39 @@ export function CustomTemplateDialog() {
               </Field>
             </Row>
             <Row className="grid-cols-5">
-              <Field label="Höhe">
-                <SelectField value={dU} options={DEVICE_HEIGHTS_U.map((u) => ({ value: u, label: `${u}U` }))} onChange={setDU} />
-              </Field>
-              <Field label="Breite">
-                <NumberField value={dWidth} unit="mm" min={50} onChange={setDWidth} />
-              </Field>
+              {dFf === 'rack' ? (
+                <>
+                  <Field label="Rackbreite">
+                    <SelectField<RackStandard>
+                      value={dStd}
+                      options={[
+                        { value: '19', label: '19 Zoll' },
+                        { value: '10', label: '10 Zoll' },
+                      ]}
+                      onChange={(v) => {
+                        setDStd(v)
+                        if (v === '10' && dDepth > 300) setDDepth(250)
+                      }}
+                    />
+                  </Field>
+                  <Field label="Höhe">
+                    <SelectField value={dU} options={DEVICE_HEIGHTS_U.map((u) => ({ value: u, label: `${u} HE` }))} onChange={setDU} />
+                  </Field>
+                </>
+              ) : (
+                <>
+                  <Field label="Breite">
+                    <NumberField value={dWidth} unit="mm" min={20} onChange={setDWidth} />
+                  </Field>
+                  <Field label="Im Rack (Boden)">
+                    <SelectField
+                      value={dShelfU}
+                      options={[{ value: 0, label: '– nein –' }, ...DEVICE_HEIGHTS_U.map((u) => ({ value: u, label: `${u} HE` }))]}
+                      onChange={setDShelfU}
+                    />
+                  </Field>
+                </>
+              )}
               <Field label="Tiefe">
                 <NumberField value={dDepth} unit="mm" min={20} onChange={setDDepth} />
               </Field>
@@ -339,6 +377,22 @@ export function CustomTemplateDialog() {
                 <NumberField value={dWeight} unit="kg" min={0} step={0.1} onChange={setDWeight} />
               </Field>
             </Row>
+            <div className="text-xs text-muted-foreground">
+              {dFf === 'rack'
+                ? dStd === '10'
+                  ? 'Passt in 10-Zoll-Racks (z. B. DeskPi RackMate) und mit Adapter in 19-Zoll-Racks.'
+                  : 'Passt nur in 19-Zoll-Racks.'
+                : dShelfU
+                  ? `Steht im Rack auf einem Einlegeboden und belegt ${dShelfU} HE${dWidth > INNER_MM['10'] ? ' – zu breit für 10-Zoll-Racks' : ''}.`
+                  : 'Wird nicht ins Rack gestellt. Für ein Rack „Im Rack (Boden)“ wählen.'}
+            </div>
+            {hasBays && (
+              <Row className="grid-cols-5">
+                <Field label="Laufwerksschächte">
+                  <NumberField value={dBays} min={0} max={60} onChange={setDBays} />
+                </Field>
+              </Row>
+            )}
             <div>
               <div className="mb-1 flex items-center justify-between text-xs font-medium text-muted-foreground">
                 Ports

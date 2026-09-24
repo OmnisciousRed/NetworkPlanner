@@ -202,8 +202,10 @@ function generateRack(p: ChassisParams): ChassisLayout {
   const margin = 12
   const ten = p.rackStandard === '10'
   const psu = ten ? PSU_SFX : PSU_RACK
+  // drive enclosures (HDD bay unit / JBOD) have no mainboard
+  const board = p.driveEnclosure ? { w: 0, h: 0 } : bay
   // interior "height" of the top view is the usable width: ~430 mm for 19", ~210 mm for 10"
-  const H = Math.max(ten ? 230 : 440, margin + bay.h + 10 + psu.h + margin)
+  const H = Math.max(ten ? 230 : 440, margin + board.h + 10 + psu.h + margin)
   const inner = H - 2 * margin
 
   // --- drive cage (front, left)
@@ -265,16 +267,17 @@ function generateRack(p: ChassisParams): ChassisLayout {
 
   // --- mainboard bay
   const boardX = x
-  slots.push({
-    id: 'mainboard',
-    kind: 'mainboard',
-    label: `Mainboard (${p.mainboardFormFactors.join(' / ')})`,
-    rect: { x: boardX, y: margin, w: bay.w, h: bay.h },
-    meta: { formFactors: p.mainboardFormFactors },
-  })
+  if (!p.driveEnclosure)
+    slots.push({
+      id: 'mainboard',
+      kind: 'mainboard',
+      label: `Mainboard (${p.mainboardFormFactors.join(' / ')})`,
+      rect: { x: boardX, y: margin, w: bay.w, h: bay.h },
+      meta: { formFactors: p.mainboardFormFactors },
+    })
 
   const psuTotal = p.psuBays * (psu.w + 8) - 8
-  const W = boardX + Math.max(bay.w, psuTotal) + margin + 14
+  const W = boardX + Math.max(board.w, psuTotal, p.driveEnclosure ? 60 : 0) + margin + 14
 
   // --- PSU bays (rear, below the board)
   for (let i = 0; i < p.psuBays; i++) {
@@ -321,13 +324,14 @@ function generateTower(p: ChassisParams): ChassisLayout {
     }
   }
 
-  slots.push({
-    id: 'mainboard',
-    kind: 'mainboard',
-    label: `Mainboard (${p.mainboardFormFactors.join(' / ')})`,
-    rect: { x: W - margin - bay.w, y: margin, w: bay.w, h: bay.h },
-    meta: { formFactors: p.mainboardFormFactors },
-  })
+  if (!p.driveEnclosure)
+    slots.push({
+      id: 'mainboard',
+      kind: 'mainboard',
+      label: `Mainboard (${p.mainboardFormFactors.join(' / ')})`,
+      rect: { x: W - margin - bay.w, y: margin, w: bay.w, h: bay.h },
+      meta: { formFactors: p.mainboardFormFactors },
+    })
 
   slots.push({
     id: 'psu-0',

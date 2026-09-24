@@ -433,15 +433,19 @@ function GenericFront({ device, w, h }: { device: Device; w: number; h: number }
       </g>
     )
   const hU = Math.max(1, Math.round(h / U_MM))
+  // NAS / storage: bays from the device (custom devices) or 4 per rack unit
+  const bayCount = Math.max(1, device.driveBays ?? hU * 4)
+  const bayCols = Math.min(bayCount, Math.max(4, Math.ceil(bayCount / hU)))
   return (
     <g>
       <rect x={EAR} y={0} width={w - 2 * EAR} height={h} rx={1.5} fill="#2b3037" stroke="#11151a" strokeWidth={0.6} />
       <Ears w={w} h={h} color="#374151" />
       {(kind === 'nas' || kind === 'storage' || kind === 'server') &&
-        Array.from({ length: kind === 'server' ? 8 : hU * 4 }, (_, i) => {
-          const cols = kind === 'server' ? 8 : 4
+        Array.from({ length: kind === 'server' ? 8 : bayCount }, (_, i) => {
+          const cols = kind === 'server' ? 8 : bayCols
+          const rows = Math.ceil(bayCount / bayCols)
           const cw = kind === 'server' ? 18 : Math.min(90, (w - 2 * EAR - 20) / cols - 3)
-          const ch = kind === 'server' ? h - 10 : (h - 8) / hU - 2
+          const ch = kind === 'server' ? h - 10 : (h - 8) / rows - 2
           return <rect key={i} x={EAR + 8 + (i % cols) * (cw + 3)} y={4 + Math.floor(i / cols) * (ch + 2)} width={cw} height={ch} rx={1} fill="#4b5563" stroke="#1f2937" strokeWidth={0.5} />
         })}
       {device.ports.slice(0, 8).map((p, i) => (
@@ -488,6 +492,7 @@ function ShelfDevice({ device, w, h, face }: { device: Device; w: number; h: num
   const kind = device.kind
   const body =
     kind === 'raspberry-pi' ? '#1f7a4d' : kind === 'nas' ? '#1f2328' : kind === 'mini-pc' ? '#2b2f36' : '#374151'
+  const shelfBays = Math.max(1, Math.min(8, device.driveBays ?? 4))
   return (
     <g>
       {/* shelf */}
@@ -498,12 +503,12 @@ function ShelfDevice({ device, w, h, face }: { device: Device; w: number; h: num
       <rect x={x} y={h - 4 - bodyH} width={bodyW} height={bodyH} rx={3} fill={body} stroke="#0b0d10" strokeWidth={0.6} />
       {face === 'front' ? (
         <>
-          {kind === 'nas' &&
-            Array.from({ length: 4 }, (_, i) => (
-              <rect key={i} x={x + 6 + i * ((bodyW - 12) / 4)} y={h - 4 - bodyH + 6} width={(bodyW - 12) / 4 - 3} height={bodyH - 12} rx={1.5} fill="#3f4652" stroke="#111" strokeWidth={0.4} />
+          {(kind === 'nas' || kind === 'storage') &&
+            Array.from({ length: shelfBays }, (_, i) => (
+              <rect key={i} x={x + 6 + i * ((bodyW - 12) / shelfBays)} y={h - 4 - bodyH + 6} width={(bodyW - 12) / shelfBays - 3} height={bodyH - 12} rx={1.5} fill="#3f4652" stroke="#111" strokeWidth={0.4} />
             ))}
-          {kind !== 'nas' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={2.2} fill="#111" stroke="#9ca3af" strokeWidth={0.5} />}
-          {kind !== 'nas' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={0.9} fill="#22c55e" />}
+          {kind !== 'nas' && kind !== 'storage' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={2.2} fill="#111" stroke="#9ca3af" strokeWidth={0.5} />}
+          {kind !== 'nas' && kind !== 'storage' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={0.9} fill="#22c55e" />}
           {kind === 'mini-pc' && [0, 1].map((i) => <rect key={i} x={x + 8 + i * 9} y={h - 4 - bodyH / 2 - 2} width={6} height={3.5} rx={0.5} fill="#1d4ed8" />)}
         </>
       ) : (

@@ -4,7 +4,7 @@ import type { DeviceTemplate } from '@/models'
 import { DEVICE_CATALOG, DEVICE_GROUP_LABELS, DEVICE_GROUP_ORDER } from '@/data/deviceCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { useProjectStore } from '@/store/projectStore'
-import { useUiStore } from '@/store/uiStore'
+import { useUiStore, openCustomDialog } from '@/store/uiStore'
 import { setHiddenInNetwork } from '@/store/actions/devices'
 import { deleteCustomTemplate } from '@/store/actions/project'
 import { DeviceIcon } from '@/components/icons'
@@ -21,7 +21,6 @@ function portSummary(t: DeviceTemplate) {
 export function NetworkLibrary() {
   const project = useProjectStore((s) => s.project)
   const set = useUiStore((s) => s.set)
-  const openDialog = useUiStore((s) => s.openDialog)
   const [q, setQ] = useState('')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ RACK: true })
   const hidden = Object.values(project.devices).filter((d) => d.hiddenInNetwork && d.kind !== 'blank-panel' && d.kind !== 'cable-management' && d.kind !== 'shelf')
@@ -37,7 +36,7 @@ export function NetworkLibrary() {
       <div className="border-b p-2.5">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bibliothek</span>
-          <Button size="xs" variant="ghost" onClick={() => openDialog('customComponent')}>
+          <Button size="xs" variant="ghost" onClick={() => openCustomDialog('device')}>
             <Plus /> Eigenes Gerät
           </Button>
         </div>

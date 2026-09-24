@@ -80,7 +80,7 @@ export function ChassisPickerPanel({ onDone, compact }: { onDone?: () => void; c
     const id = createBuiltDeviceAction(kind, name.trim() || nextDeviceName(kind), chassisName, params, isCustom ? undefined : selected.id)
     if (basics) {
       const rack = params.formFactor === 'rack'
-      const psu = rack ? (params.rackStandard === '10' ? 'psu-sfx-450' : params.heightU >= 2 ? 'psu-crps-1600' : 'psu-crps-800') : 'psu-atx-850'
+      const psu = rack ? (params.rackStandard === '10' ? 'psu-sfx-450' : params.driveEnclosure || params.heightU < 2 ? 'psu-crps-800' : 'psu-crps-1600') : 'psu-atx-850'
       const fan = rack ? (params.fanSizeMm >= 80 ? 'fan-80' : params.fanSizeMm >= 60 ? 'fan-60' : 'fan-40') : 'fan-120'
       for (let i = 0; i < (rack ? params.psuBays : 1); i++) addComponentFromTemplate(id, psu, { auto: true })
       for (let i = 0; i < params.fanSlots; i++) addComponentFromTemplate(id, fan, { auto: true })
@@ -104,7 +104,12 @@ export function ChassisPickerPanel({ onDone, compact }: { onDone?: () => void; c
           <button
             key={t.id}
             type="button"
-            onClick={() => setChoice(t.id)}
+            onClick={() => {
+              setChoice(t.id)
+              // a drive enclosure is a storage device, not a server
+              if (t.params.driveEnclosure && kind === 'server') setKind('storage')
+              else if (!t.params.driveEnclosure && kind === 'storage') setKind('server')
+            }}
             data-testid={`chassis-${t.id}`}
             className={cn(
               'relative flex cursor-pointer flex-col items-center gap-1 rounded-lg border bg-card p-2 text-center transition-colors hover:border-primary/60',

@@ -6,7 +6,7 @@ import { DEVICE_CATALOG } from '@/data/deviceCatalog'
 import { RACK_PRESETS } from '@/data/rackCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { useProjectStore } from '@/store/projectStore'
-import { toast, useUiStore } from '@/store/uiStore'
+import { openCustomDialog, toast, useUiStore } from '@/store/uiStore'
 import { addRackDeviceFromTemplate, addRackFromPreset, fillWithBlanks, placeDevice, placeDeviceAuto, unplaceDevice } from '@/store/actions/rack'
 import { findFreePosition, widthProblem } from '@/utils/rack'
 import { createDeviceFromTemplate } from '@/utils/factory'
@@ -228,6 +228,18 @@ function RackLibrary() {
             ))}
           </details>
         )}
+        <div className="mx-1 mb-2 mt-3 space-y-1.5 rounded-md border border-dashed p-2" data-testid="rack-missing-part">
+          <div className="text-[11px] font-medium">Passendes Teil nicht dabei?</div>
+          <Button size="xs" variant="outline" className="w-full justify-start" onClick={() => openCustomDialog('device')}>
+            <Plus /> Eigenes Rack-Gerät anlegen
+          </Button>
+          <Button size="xs" variant="outline" className="w-full justify-start" onClick={() => openDialog('chassisPicker')}>
+            <Wrench /> Selbst bauen (z. B. HDD-Einschub)
+          </Button>
+          <button type="button" className="cursor-pointer px-0.5 text-[11px] text-primary underline underline-offset-2" onClick={() => openHelp('fehlende-teile')}>
+            So geht's – Handbuch
+          </button>
+        </div>
       </div>
     </aside>
   )

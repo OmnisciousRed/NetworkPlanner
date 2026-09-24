@@ -230,6 +230,11 @@ export function DeviceInspector({ device }: { device: Device }) {
                   </Field>
                 )
               )}
+              {(device.kind === 'nas' || device.kind === 'storage') && (
+                <Field label="Laufwerksschächte" hint="Anzahl der Einschübe auf der Front">
+                  <NumberField value={device.driveBays ?? (isShelfDevice(device) ? 4 : (device.heightU ?? 1) * 4)} min={0} max={60} onChange={(v) => upd((d) => (d.driveBays = v), 'bays')} />
+                </Field>
+              )}
               <Row>
                 <Field label="Gewicht">
                   <NumberField value={device.weightKg} unit="kg" step={0.1} min={0} onChange={(v) => upd((d) => (d.weightKg = v), 'kg')} />

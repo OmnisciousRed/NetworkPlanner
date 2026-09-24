@@ -40,7 +40,7 @@ describe('layout generators', () => {
       expect(count('bay-2.5')).toBe(t.params.bays25)
       expect(count('psu')).toBe(t.params.psuBays)
       expect(count('fan')).toBe(t.params.fanSlots)
-      expect(count('mainboard')).toBe(1)
+      expect(count('mainboard')).toBe(t.params.driveEnclosure ? 0 : 1)
       expect(layout.slots.filter((s) => s.meta.nvme).length).toBe(t.params.nvmeBays)
     }
   })

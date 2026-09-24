@@ -71,6 +71,8 @@ interface UiState {
   clipboard: Clipboard
   inspectorOpen: boolean
   dialogs: { chassisPicker: boolean; customComponent: boolean; projects: boolean; shortcuts: boolean; welcome: boolean }
+  /** tab the "+ Eigene" dialog opens with */
+  customDialogTab: 'component' | 'mainboard' | 'device'
   set: (patch: Partial<UiState>) => void
   select: (s: Selection | null) => void
   setHw: (patch: Partial<HardwareSettings>) => void
@@ -107,12 +109,18 @@ export const useUiStore = create<UiState>()((set) => ({
   clipboard: null,
   inspectorOpen: true,
   dialogs: { chassisPicker: false, customComponent: false, projects: false, shortcuts: false, welcome: false },
+  customDialogTab: 'component',
   set: (patch) => set(patch),
   select: (selection) => set({ selection }),
   setHw: (patch) => set((s) => ({ hw: { ...s.hw, ...patch } })),
   setNet: (patch) => set((s) => ({ net: { ...s.net, ...patch } })),
   openDialog: (name, open = true) => set((s) => ({ dialogs: { ...s.dialogs, [name]: open } })),
 }))
+
+/** opens the "+ Eigene" dialog on a tab (component, mainboard or device) */
+export function openCustomDialog(tab: UiState['customDialogTab'] = 'component') {
+  useUiStore.setState((s) => ({ customDialogTab: tab, dialogs: { ...s.dialogs, customComponent: true } }))
+}
 
 let toastId = 0
 export function toast(message: string, level: Toast['level'] = 'info', action?: Toast['action']) {

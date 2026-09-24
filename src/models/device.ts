@@ -104,6 +104,8 @@ export interface Device {
   weightKg?: number
   /** typical power draw for non-built devices */
   powerW?: number
+  /** drive bays shown on the front (NAS / storage without a hardware build) */
+  driveBays?: number
   ups?: UpsSpecs
   pdu?: PduSpecs
   /** hardware composition – present for devices assembled in the hardware builder */
@@ -154,6 +156,8 @@ export interface DeviceTemplate {
   depthMm?: number
   weightKg?: number
   powerW?: number
+  /** drive bays shown on the front (NAS / storage without a hardware build) */
+  driveBays?: number
   ports: PortGroupSpec[]
   ups?: UpsSpecs
   pdu?: PduSpecs

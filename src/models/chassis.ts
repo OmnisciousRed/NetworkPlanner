@@ -11,6 +11,11 @@ export interface ChassisParams {
   rackStandard?: RackStandard
   /** rack units, rack chassis only */
   heightU: number
+  /**
+   * pure drive enclosure without mainboard (HDD bay unit, JBOD): the drives sit on a
+   * backplane that is cabled to a server (SATA/SAS/USB)
+   */
+  driveEnclosure?: boolean
   bays35: number
   bays25: number
   /** how many of the 2.5" bays support U.2 NVMe */

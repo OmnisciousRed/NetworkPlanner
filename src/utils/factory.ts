@@ -123,6 +123,7 @@ export function createDeviceFromTemplate(t: DeviceTemplate, overrides: Partial<D
     depthMm: t.depthMm,
     weightKg: t.weightKg,
     powerW: t.powerW,
+    driveBays: t.driveBays,
     ups: t.ups ? { ...t.ups } : undefined,
     pdu: t.pdu ? { ...t.pdu } : undefined,
     ports: createPortsFromGroups(t.ports),
@@ -145,7 +146,8 @@ export function createBuiltDevice(kind: DeviceKind, name: string, chassis: Chass
     build: { chassis, components: [], links: [] },
     ports: [],
     layout: {},
-    hiddenInNetwork: !DEVICE_KINDS[kind].network,
+    // a drive enclosure has no network ports of its own
+    hiddenInNetwork: !DEVICE_KINDS[kind].network || !!chassis.params.driveEnclosure,
   }
 }
 
