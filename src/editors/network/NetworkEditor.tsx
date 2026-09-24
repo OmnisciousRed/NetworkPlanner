@@ -62,7 +62,7 @@ import { ConnectionEdge } from './ConnectionEdge'
 import { NetworkLibrary } from './NetworkLibrary'
 import { ANY_HANDLE, buildGraph, positionKey, type AnyNode, type ConnEdge, type GroupNode as GroupNodeT } from './graph'
 
-const nodeTypes = { device: DeviceNode, group: GroupNode, zone: ZoneNode }
+const nodeTypes = { device: DeviceNode, devgroup: GroupNode, zone: ZoneNode }
 const edgeTypes = { conn: ConnectionEdge }
 
 const VIEWS: { id: NetworkView; label: string; hint: string }[] = [
@@ -79,11 +79,11 @@ function sizeOf(n: AnyNode) {
 function withDerived(nodes: AnyNode[]): AnyNode[] {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   return nodes.map((n) => {
-    if (n.type !== 'group' && n.type !== 'zone') return n
+    if (n.type !== 'devgroup' && n.type !== 'zone') return n
     const members = (n.data.memberIds as Id[]).map((id) => byId.get(id)).filter((m): m is AnyNode => !!m)
     if (!members.length) return { ...n, hidden: true }
-    const pad = n.type === 'group' ? 22 : 30
-    const top = n.type === 'group' ? 26 : 36
+    const pad = n.type === 'devgroup' ? 22 : 30
+    const top = n.type === 'devgroup' ? 26 : 36
     const minX = Math.min(...members.map((m) => m.position.x)) - pad
     const minY = Math.min(...members.map((m) => m.position.y)) - top
     const maxX = Math.max(...members.map((m) => m.position.x + sizeOf(m).w)) + pad
@@ -188,7 +188,7 @@ function NetworkEditorInner() {
       const ids = new Set<Id>()
       for (const n of dragged) {
         if (n.type === 'device') ids.add(n.id)
-        if (n.type === 'group') (n.data.memberIds as Id[]).forEach((m) => ids.add(m))
+        if (n.type === 'devgroup') (n.data.memberIds as Id[]).forEach((m) => ids.add(m))
       }
       const positions: Record<Id, Point> = {}
       for (const id of ids) {
@@ -209,7 +209,7 @@ function NetworkEditorInner() {
     ({ nodes: ns, edges: es }: OnSelectionChangeParams<AnyNode, ConnEdge>) => {
       const cur = useUiStore.getState().selection
       const devs = ns.filter((n) => n.type === 'device').map((n) => n.id)
-      const grp = ns.find((n) => n.type === 'group')
+      const grp = ns.find((n) => n.type === 'devgroup')
       const cons = es.filter((e) => !e.id.startsWith('hosted:')).map((e) => e.id)
       if (devs.length) {
         if (!(cur?.type === 'device' && sameIds(cur.ids, devs))) select({ type: 'device', ids: devs })

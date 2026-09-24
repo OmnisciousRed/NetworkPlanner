@@ -36,7 +36,7 @@ export type ConnEdgeData = {
 }
 
 export type DeviceNode = Node<DeviceNodeData, 'device'>
-export type GroupNode = Node<GroupNodeData, 'group'>
+export type GroupNode = Node<GroupNodeData, 'devgroup'>
 export type ZoneNode = Node<ZoneNodeData, 'zone'>
 export type AnyNode = DeviceNode | GroupNode | ZoneNode
 export type ConnEdge = Edge<ConnEdgeData, 'conn'>
@@ -244,7 +244,7 @@ export function buildGraph(
     if (!memberIds.length) continue
     nodes.push({
       id: `group:${g.id}`,
-      type: 'group',
+      type: 'devgroup',
       position: { x: 0, y: 0 },
       data: { group: g, memberIds },
       selected: selection.group === g.id,

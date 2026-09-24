@@ -338,18 +338,6 @@ export function HardwareEditor() {
               <ToolButton tip="Ablage aufräumen (Auto-Layout)" disabled={!looseCount} onClick={() => arrangeTray(device.id)}>
                 <LayoutGrid />
               </ToolButton>
-              <div className="ml-auto flex items-center gap-0.5">
-                <ToolButton tip="Verkleinern (-)" onClick={() => api?.zoomOut()}>
-                  <ZoomOut />
-                </ToolButton>
-                <span className="w-11 text-center text-xs tabular-nums text-muted-foreground">{Math.round((api?.zoom ?? 1) * 100)}%</span>
-                <ToolButton tip="Vergrößern (+)" onClick={() => api?.zoomIn()}>
-                  <ZoomIn />
-                </ToolButton>
-                <ToolButton tip="Alles einpassen (0)" onClick={() => api?.fit()}>
-                  <Maximize />
-                </ToolButton>
-              </div>
             </>
           )}
         </div>
@@ -357,6 +345,20 @@ export function HardwareEditor() {
         {/* canvas / views */}
         <div className="relative min-h-0 flex-1">
           {hardwareView === 'interior' && <HardwareCanvas device={device} issues={issues} tool={tool} onViewportApi={onApi} />}
+          {hardwareView === 'interior' && (
+            <div className="absolute bottom-3 right-3 flex items-center gap-0.5 rounded-lg border bg-card/95 p-0.5 shadow-md">
+              <ToolButton tip="Verkleinern (-)" onClick={() => api?.zoomOut()}>
+                <ZoomOut />
+              </ToolButton>
+              <span className="w-11 text-center text-xs tabular-nums text-muted-foreground">{Math.round((api?.zoom ?? 1) * 100)}%</span>
+              <ToolButton tip="Vergrößern (+)" onClick={() => api?.zoomIn()}>
+                <ZoomIn />
+              </ToolButton>
+              <ToolButton tip="Alles einpassen (0)" onClick={() => api?.fit()}>
+                <Maximize />
+              </ToolButton>
+            </div>
+          )}
           {hardwareView === 'exploded' && <ExplodedView device={device} />}
           {hardwareView === 'front' && <FaceView device={device} face="front" />}
           {hardwareView === 'rear' && <FaceView device={device} face="rear" />}
