@@ -27,6 +27,9 @@ export interface RackPlacement {
 
 export const RACK_HEIGHTS = [6, 9, 12, 15, 18, 22, 24, 27, 32, 36, 42, 45, 47, 48]
 
+/** selectable heights for a single device (e.g. 8U GPU servers, 10U blade chassis) */
+export const DEVICE_HEIGHTS_U = Array.from({ length: 12 }, (_, i) => i + 1)
+
 /** 1 U = 1.75" = 44.45 mm */
 export const U_MM = 44.45
 /** 19" front panel incl. ears */

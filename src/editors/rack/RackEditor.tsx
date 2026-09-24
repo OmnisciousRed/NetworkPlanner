@@ -219,7 +219,7 @@ export function RackEditor() {
   }, [])
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1">
       <RackLibrary />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1 border-b bg-card px-2 py-1.5">
@@ -243,7 +243,7 @@ export function RackEditor() {
           <Button size="sm" variant="ghost" disabled={!activeRackId} onClick={() => activeRackId && fillWithBlanks(activeRackId)}>
             Blindblenden auffüllen
           </Button>
-          <span className="ml-2 hidden truncate text-xs text-muted-foreground 2xl:inline">
+          <span className="ml-2 hidden min-w-0 flex-1 truncate text-xs text-muted-foreground 2xl:block">
             Ziehen = einsetzen/verschieben · herausziehen = entfernen · ↑/↓ = 1 HE · Doppelklick = Hardware Builder
           </span>
           <div className="ml-auto flex items-center gap-0.5">

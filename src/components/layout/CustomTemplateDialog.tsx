@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { ComponentKind, ComponentTemplate, DeviceKind, DeviceTemplate, MainboardSpecs, PortGroupSpec } from '@/models'
-import { CONNECTORS, SPEED_OPTIONS, formatSpeed, uid } from '@/models'
+import { CONNECTORS, DEVICE_HEIGHTS_U, SPEED_OPTIONS, formatSpeed, uid } from '@/models'
 import { COMPONENT_CATALOG } from '@/data/componentCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { useUiStore, toast } from '@/store/uiStore'
@@ -324,7 +324,7 @@ export function CustomTemplateDialog() {
             </Row>
             <Row className="grid-cols-5">
               <Field label="Höhe">
-                <SelectField value={dU} options={[1, 2, 3, 4, 5, 6].map((u) => ({ value: u, label: `${u}U` }))} onChange={setDU} />
+                <SelectField value={dU} options={DEVICE_HEIGHTS_U.map((u) => ({ value: u, label: `${u}U` }))} onChange={setDU} />
               </Field>
               <Field label="Breite">
                 <NumberField value={dWidth} unit="mm" min={50} onChange={setDWidth} />

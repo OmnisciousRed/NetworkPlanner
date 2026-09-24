@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Copy, Eye, EyeOff, Network, Plus, Server, Trash2, Wrench, X } from 'lucide-react'
 import type { Device, Id, StaticRoute } from '@/models'
-import { RACK_HEIGHTS, uid } from '@/models'
+import { DEVICE_HEIGHTS_U, uid } from '@/models'
 import { useProjectStore } from '@/store/projectStore'
 import { deleteDevices, duplicateDevices, setHiddenInNetwork, updateDevice } from '@/store/actions/devices'
 import { placeDevice, placeDeviceAuto, unplaceDevice } from '@/store/actions/rack'
@@ -202,8 +202,8 @@ export function DeviceInspector({ device }: { device: Device }) {
               <Row>
                 <Field label="Höhe (HE)">
                   <SelectField
-                    value={device.heightU ?? 0}
-                    options={[{ value: 0, label: device.formFactor === 'rack' ? '1' : '– kein Rack –' }, ...RACK_HEIGHTS.filter((x) => x <= 8).concat([1, 2, 3, 4]).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b).map((x) => ({ value: x, label: `${x} HE` }))]}
+                    value={device.heightU ?? (device.formFactor === 'rack' ? 1 : 0)}
+                    options={[...(device.formFactor === 'rack' ? [] : [{ value: 0, label: '– kein Rack –' }]), ...DEVICE_HEIGHTS_U.map((x) => ({ value: x, label: `${x} HE` }))]}
                     onChange={(v) => upd((d) => (d.heightU = v || undefined), 'hu')}
                   />
                 </Field>

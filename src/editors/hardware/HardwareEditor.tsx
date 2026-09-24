@@ -181,7 +181,7 @@ export function HardwareEditor() {
 
   if (!device || !build) {
     return (
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1">
         <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto bg-canvas p-8 scroll-thin">
           <div className="w-full max-w-5xl rounded-xl border bg-card p-6 shadow-sm">
             <h2 className="text-lg font-semibold">Neuen Server erstellen</h2>
@@ -202,7 +202,7 @@ export function HardwareEditor() {
   const looseCount = build.components.filter((c) => !c.mount).length
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-0 flex-1">
       <ComponentLibrary deviceId={device.id} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* toolbar */}

@@ -1,4 +1,5 @@
 import type { ChassisParams, Device, MainboardFormFactor } from '@/models'
+import { DEVICE_HEIGHTS_U } from '@/models'
 import { updateChassisParams } from '@/store/actions/hardware'
 import { Field, NumberField, Row, Section, SelectField, SwitchField, TextField } from './fields'
 import { cn } from '@/lib/utils'
@@ -22,7 +23,7 @@ export function ChassisParamsForm({ params, onChange }: { params: ChassisParams;
         </Field>
         {rack ? (
           <Field label="Höhe">
-            <SelectField value={params.heightU} options={[1, 2, 3, 4, 5].map((u) => ({ value: u, label: `${u}U` }))} onChange={(v) => onChange({ heightU: v, heightMm: Math.round(v * 44.45 - 1) })} />
+            <SelectField value={params.heightU} options={DEVICE_HEIGHTS_U.map((u) => ({ value: u, label: `${u}U` }))} onChange={(v) => onChange({ heightU: v, heightMm: Math.round(v * 44.45 - 1) })} />
           </Field>
         ) : (
           <Field label="Höhe">
