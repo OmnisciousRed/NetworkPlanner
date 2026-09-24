@@ -130,7 +130,7 @@ export function createDemoProject(): Project {
   const poe = fromTemplate('dev-poe-switch', 'Access Switch', { hostname: 'access-sw' })
   const patch = fromTemplate('rack-patch-24', 'Patchpanel 01')
   const cable = fromTemplate('rack-cable-1u', 'Kabelführung 01')
-  const ups = fromTemplate('rack-ups-3000', 'USV 01')
+  const ups = fromTemplate('rack-ups-3000', 'USV 01', { hiddenInNetwork: false })
   const pdu = fromTemplate('rack-pdu', 'PDU 01')
   const ap = fromTemplate('dev-ap', 'Access Point', { hostname: 'ap-eg' })
   const pc = fromTemplate('dev-pc', 'Arbeitsplatz-PC')

@@ -220,5 +220,6 @@
   stroke-width: 4;
 }
 .react-flow__attribution {
-  display: none;
+  font-size: 9px;
+  opacity: 0.6;
 }
