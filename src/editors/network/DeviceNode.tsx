@@ -1,10 +1,10 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { Device, NetworkInterface } from '@/models'
-import { RACK_PANEL_MM, U_MM, formatSpeed } from '@/models'
+import { U_MM, formatSpeed } from '@/models'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { DeviceIcon } from '@/components/icons'
-import { DeviceFaceplate } from '@/components/rack/Faceplate'
+import { DeviceFaceplate, devicePanelWidth } from '@/components/rack/Faceplate'
 import { buildOneLiner } from '@/utils/buildSummary'
 import { getDeviceHeightU, getDevicePorts, type DevicePort } from '@/utils/device'
 import { cn } from '@/lib/utils'
@@ -164,7 +164,7 @@ function MiniFace({ d }: { d: Device }) {
   const h = getDeviceHeightU(d)
   if (!h || !(d.formFactor === 'rack' || d.build?.chassis.params.formFactor === 'rack')) return null
   return (
-    <svg viewBox={`0 0 ${RACK_PANEL_MM} ${h * U_MM}`} className="mb-1.5 block w-full rounded-sm" style={{ height: Math.min(56, h * 22) }}>
+    <svg viewBox={`0 0 ${devicePanelWidth(d)} ${h * U_MM}`} className="mb-1.5 block w-full rounded-sm" style={{ height: Math.min(56, h * 22) }}>
       <DeviceFaceplate device={d} face="front" />
     </svg>
   )

@@ -9,6 +9,21 @@ export function goTo(view: ReturnType<typeof useUiStore.getState>['view']) {
   useUiStore.getState().set({ view })
 }
 
+/** opens the manual, optionally at a section (heading id from docs/HANDBUCH.md) */
+export function openHelp(section?: string) {
+  const ui = useUiStore.getState()
+  ui.set({
+    view: 'help',
+    prevView: ui.view === 'help' ? ui.prevView : ui.view,
+    helpSection: section ? { id: section, nonce: ++nonce } : undefined,
+  })
+}
+
+export function closeHelp() {
+  const ui = useUiStore.getState()
+  ui.set({ view: ui.prevView ?? 'overview' })
+}
+
 /** open a device in the hardware builder (optionally selecting a component) */
 export function openInHardware(deviceId: Id, componentId?: Id) {
   const d = getProject().devices[deviceId]

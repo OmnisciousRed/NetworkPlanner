@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Device, Id, Point, Rack } from '@/models'
-import { U_MM } from '@/models'
+import { PANEL_MM, RACK_STANDARD_LABEL, U_MM, rackStandardOf } from '@/models'
 import { findDeviceTemplate } from '@/data/deviceCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { HardwareDefs } from '@/components/hardware/graphics'
-import { DeviceFaceplate, RACK_W } from '@/components/rack/Faceplate'
+import { DeviceFaceplate, widthInRack } from '@/components/rack/Faceplate'
 import { useProjectStore } from '@/store/projectStore'
 import { toast, useUiStore } from '@/store/uiStore'
 import { addRackDeviceFromTemplate, placeDevice, unplaceDevice } from '@/store/actions/rack'
@@ -15,12 +15,27 @@ import { getDeviceHeightU, getDevicePower } from '@/utils/device'
 import { useViewport } from '../useViewport'
 
 const POST = 38
-export const FRAME_W = RACK_W + POST * 2
 const TOP = 70
-const GAP = 280
+const GAP = 360
 
-export function rackX(i: number) {
-  return i * (FRAME_W + GAP)
+/** width between the posts (19": 482.6 mm, 10": 254 mm) */
+export function rackPanelW(rack: Rack) {
+  return PANEL_MM[rackStandardOf(rack)]
+}
+
+export function frameW(rack: Rack) {
+  return rackPanelW(rack) + POST * 2
+}
+
+/** x positions of racks placed side by side */
+function rackXs(racks: Rack[]): number[] {
+  const xs: number[] = []
+  let x = 0
+  for (const r of racks) {
+    xs.push(x)
+    x += frameW(r) + GAP
+  }
+  return xs
 }
 
 interface DropTarget {
@@ -63,8 +78,11 @@ export function RackCanvas({ onApi }: { onApi?: (api: RackCanvasHandle) => void 
   const [hover, setHover] = useState<Id | null>(null)
 
   const racks = useMemo(() => Object.values(project.racks).sort((a, b) => a.name.localeCompare(b.name)), [project.racks])
+  const xs = useMemo(() => rackXs(racks), [racks])
+  const rackX = (i: number) => xs[i] ?? 0
   const maxH = Math.max(12, ...racks.map((r) => r.heightU))
-  const bounds = { x: -80, y: 0, w: Math.max(1, racks.length) * (FRAME_W + GAP) + 40, h: TOP + maxH * U_MM + 90 }
+  const totalW = racks.reduce((w, r) => w + frameW(r) + GAP, 0)
+  const bounds = { x: -80, y: 0, w: Math.max(totalW, 600) + 40, h: TOP + maxH * U_MM + 90 }
 
   const doFit = () => fit(bounds, 30)
   const fitRef = useRef(doFit)
@@ -84,12 +102,12 @@ export function RackCanvas({ onApi }: { onApi?: (api: RackCanvasHandle) => void 
     const rack = racks[idx]
     const h = getDeviceHeightU(d) ?? 1
     const y = TOP + (rack.heightU - (d.rackPlacement!.positionU + h - 1)) * U_MM + (h * U_MM) / 2
-    centerOn({ x: rackX(idx) + FRAME_W / 2, y }, Math.max(vp.zoom, 1))
+    centerOn({ x: rackX(idx) + frameW(rack) / 2, y }, Math.max(vp.zoom, 1))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.nonce])
 
   const targetAt = (world: Point, device: Device | null, heightU: number, grabUnit: number): DropTarget | null => {
-    const idx = racks.findIndex((_, i) => world.x >= rackX(i) - 40 && world.x <= rackX(i) + FRAME_W + 40)
+    const idx = racks.findIndex((r, i) => world.x >= rackX(i) - 40 && world.x <= rackX(i) + frameW(r) + 40)
     if (idx < 0) return null
     const rack = racks[idx]
     const unitFromTop = Math.floor((world.y - TOP) / U_MM)
@@ -257,13 +275,16 @@ export function RackCanvas({ onApi }: { onApi?: (api: RackCanvasHandle) => void 
             const rack = racks[idx]
             if (!rack) return null
             const y = TOP + (rack.heightU - (ghost.positionU + ghost.height - 1)) * U_MM
+            const pw = rackPanelW(rack)
+            const dw = widthInRack(ghostDevice, pw)
+            const off = (pw - dw) / 2
             return (
               <g transform={`translate(${rackX(idx) + POST} ${y})`} style={{ pointerEvents: 'none' }}>
-                <g opacity={0.65}>
-                  <DeviceFaceplate device={ghostDevice} face={face} />
+                <g opacity={0.65} transform={`translate(${off} 0)`}>
+                  <DeviceFaceplate device={ghostDevice} face={face} shelfWidth={pw} />
                 </g>
-                <rect x={-3} y={-2} width={RACK_W + 6} height={ghost.height * U_MM + 3} rx={3} fill={ghost.ok ? '#22c55e' : '#ef4444'} fillOpacity={0.15} stroke={ghost.ok ? '#22c55e' : '#ef4444'} strokeWidth={3} />
-                <text x={RACK_W + 14} y={(ghost.height * U_MM) / 2} fontSize={16} fontWeight={700} fill={ghost.ok ? '#16a34a' : '#dc2626'} dominantBaseline="central">
+                <rect x={Math.min(0, off) - 3} y={-2} width={Math.max(pw, dw) + 6} height={ghost.height * U_MM + 3} rx={3} fill={ghost.ok ? '#22c55e' : '#ef4444'} fillOpacity={0.15} stroke={ghost.ok ? '#22c55e' : '#ef4444'} strokeWidth={3} />
+                <text x={Math.max(pw, pw - off) + POST + 14} y={(ghost.height * U_MM) / 2} fontSize={16} fontWeight={700} fill={ghost.ok ? '#16a34a' : '#dc2626'} dominantBaseline="central">
                   {`U${ghost.positionU}${ghost.height > 1 ? `–U${ghost.positionU + ghost.height - 1}` : ''}`} {ghost.ok ? '✓' : `✕ ${ghost.reason ?? ''}`}
                 </text>
               </g>
@@ -272,7 +293,7 @@ export function RackCanvas({ onApi }: { onApi?: (api: RackCanvasHandle) => void 
         </g>
       </svg>
       {!racks.length && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Noch kein Rack – links „+ Rack“ klicken.</div>
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Noch kein Rack – links eine Vorlage wählen (19" oder 10") und „Rack hinzufügen“ klicken.</div>
       )}
       {drag?.moved && !drag.target && (
         <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-md bg-foreground px-3 py-1 text-xs text-background">Loslassen, um das Gerät aus dem Rack zu nehmen</div>
@@ -310,19 +331,22 @@ function RackGraphic({
   const devices = devicesInRack(project, rack.id)
   const analysis = useMemo(() => analyzeRack(project, rack), [project, rack])
   const H = rack.heightU * U_MM
+  const pw = rackPanelW(rack)
+  const fw = frameW(rack)
+  const std = rackStandardOf(rack)
   return (
     <g transform={`translate(${x} 0)`}>
       {/* header */}
       <g style={{ cursor: 'pointer' }} onPointerDown={(e) => { e.stopPropagation(); onSelectRack() }}>
-        <rect x={0} y={0} width={FRAME_W} height={52} rx={8} fill={active ? 'var(--primary)' : 'var(--card)'} stroke="var(--border)" />
+        <rect x={0} y={0} width={Math.max(fw, 330)} height={52} rx={8} fill={active ? 'var(--primary)' : 'var(--card)'} stroke="var(--border)" />
         <text x={16} y={22} fontSize={20} fontWeight={700} fill={active ? 'var(--primary-foreground)' : 'var(--label)'}>
           {rack.name}
         </text>
         <text x={16} y={42} fontSize={13} fill={active ? 'var(--primary-foreground)' : 'var(--label-muted)'} opacity={0.9}>
-          {`${rack.heightU}U · ${analysis.usedU}U belegt · ${analysis.freeU}U frei · ${(analysis.powerTypicalW / 1000).toFixed(2)} kW · ${Math.round(analysis.weightKg)} kg`}
+          {`${RACK_STANDARD_LABEL[std]} · ${rack.heightU}U · ${analysis.freeU}U frei · ${(analysis.powerTypicalW / 1000).toFixed(2)} kW · ${Math.round(analysis.weightKg)} kg`}
         </text>
         {analysis.warnings.length > 0 && (
-          <g transform={`translate(${FRAME_W - 26} 26)`}>
+          <g transform={`translate(${Math.max(fw, 330) - 26} 26)`}>
             <circle r={11} fill="#f59e0b" />
             <text textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={800} fill="white">
               !
@@ -332,31 +356,31 @@ function RackGraphic({
         )}
       </g>
       {/* frame */}
-      <rect x={0} y={TOP - 16} width={FRAME_W} height={H + 32} rx={6} fill="#1a1d22" stroke={active ? 'var(--primary)' : '#0b0d10'} strokeWidth={active ? 3 : 1.5} />
-      <rect x={POST} y={TOP} width={RACK_W} height={H} fill="#0f1114" />
+      <rect x={0} y={TOP - 16} width={fw} height={H + 32} rx={6} fill="#1a1d22" stroke={active ? 'var(--primary)' : '#0b0d10'} strokeWidth={active ? 3 : 1.5} />
+      <rect x={POST} y={TOP} width={pw} height={H} fill="#0f1114" />
       {/* posts with unit numbers */}
       {Array.from({ length: rack.heightU }, (_, i) => {
         const u = rack.heightU - i
         const y = TOP + i * U_MM
         return (
           <g key={u}>
-            <line x1={POST} x2={POST + RACK_W} y1={y} y2={y} stroke="#1f242b" strokeWidth={0.8} />
+            <line x1={POST} x2={POST + pw} y1={y} y2={y} stroke="#1f242b" strokeWidth={0.8} />
             <text x={POST / 2} y={y + U_MM / 2} fontSize={12} fill="#9ca3af" textAnchor="middle" dominantBaseline="central" fontFamily="JetBrains Mono, monospace">
               {u}
             </text>
-            <text x={FRAME_W - POST / 2} y={y + U_MM / 2} fontSize={12} fill="#9ca3af" textAnchor="middle" dominantBaseline="central" fontFamily="JetBrains Mono, monospace">
+            <text x={fw - POST / 2} y={y + U_MM / 2} fontSize={12} fill="#9ca3af" textAnchor="middle" dominantBaseline="central" fontFamily="JetBrains Mono, monospace">
               {u}
             </text>
             {[0.2, 0.5, 0.8].map((f) => (
               <g key={f}>
                 <rect x={POST - 7} y={y + U_MM * f - 2} width={4} height={4} fill="#374151" />
-                <rect x={POST + RACK_W + 3} y={y + U_MM * f - 2} width={4} height={4} fill="#374151" />
+                <rect x={POST + pw + 3} y={y + U_MM * f - 2} width={4} height={4} fill="#374151" />
               </g>
             ))}
           </g>
         )
       })}
-      <text x={FRAME_W / 2} y={TOP + H + 40} fontSize={14} fill="var(--label-muted)" textAnchor="middle" fontWeight={600}>
+      <text x={fw / 2} y={TOP + H + 40} fontSize={14} fill="var(--label-muted)" textAnchor="middle" fontWeight={600}>
         {face === 'front' ? 'Vorderansicht' : 'Rückansicht'}
       </text>
       {/* devices */}
@@ -366,6 +390,8 @@ function RackGraphic({
         const sel = selectedIds.includes(d.id)
         const other = d.rackPlacement!.face === 'rear' ? face === 'front' : false
         const showFace: 'front' | 'rear' = d.rackPlacement!.face === 'rear' ? (face === 'front' ? 'rear' : 'front') : face
+        const dw = widthInRack(d, pw)
+        const off = (pw - dw) / 2
         return (
           <g
             key={d.id}
@@ -378,16 +404,17 @@ function RackGraphic({
             onPointerLeave={() => setHover(null)}
             data-rack-device={d.id}
           >
-            <g opacity={other ? 0.45 : 1}>
-              <DeviceFaceplate device={d} face={showFace} />
+            {off > 0 && <AdapterPlates pw={pw} dw={dw} h={h * U_MM - 0.8} />}
+            <g opacity={other ? 0.45 : 1} transform={`translate(${off} 0)`}>
+              <DeviceFaceplate device={d} face={showFace} shelfWidth={pw} />
             </g>
             {other && (
-              <text x={RACK_W / 2} y={(h * U_MM) / 2} fontSize={11} fill="#e5e7eb" textAnchor="middle" dominantBaseline="central">
+              <text x={pw / 2} y={(h * U_MM) / 2} fontSize={11} fill="#e5e7eb" textAnchor="middle" dominantBaseline="central">
                 (hinten montiert)
               </text>
             )}
             {(sel || hover === d.id) && (
-              <rect x={-2} y={-1} width={RACK_W + 4} height={h * U_MM + 1} rx={2} fill="none" stroke="var(--selection)" strokeWidth={sel ? 3 : 1.5} />
+              <rect x={Math.min(0, off) - 2} y={-1} width={Math.max(pw, dw) + 4} height={h * U_MM + 1} rx={2} fill="none" stroke="var(--selection)" strokeWidth={sel ? 3 : 1.5} />
             )}
           </g>
         )
@@ -399,7 +426,7 @@ function RackGraphic({
         const y = TOP + (rack.heightU - (d.rackPlacement!.positionU + h - 1)) * U_MM + (h * U_MM) / 2
         const pos = d.rackPlacement!.positionU
         return (
-          <g key={`lbl-${d.id}`} transform={`translate(${FRAME_W + 14} ${y})`} style={{ pointerEvents: 'none' }}>
+          <g key={`lbl-${d.id}`} transform={`translate(${fw + 14} ${y})`} style={{ pointerEvents: 'none' }}>
             <line x1={-12} x2={-2} y1={0} y2={0} stroke="var(--label-muted)" strokeWidth={1} />
             <text x={0} y={-6} fontSize={13} fontWeight={600} fill="var(--label)" dominantBaseline="central">
               {d.name}
@@ -410,6 +437,26 @@ function RackGraphic({
           </g>
         )
       })}
+    </g>
+  )
+}
+
+/** 10" device in a 19" rack: filler brackets left and right (a common 10"→19" adapter) */
+function AdapterPlates({ pw, dw, h }: { pw: number; dw: number; h: number }) {
+  const side = (pw - dw) / 2
+  return (
+    <g>
+      {[0, pw - side].map((x) => (
+        <g key={x}>
+          <rect x={x} y={0} width={side} height={h} fill="#2a2e35" stroke="#0b0d10" strokeWidth={0.6} />
+          {Array.from({ length: Math.max(1, Math.floor(side / 18)) }, (_, i) => (
+            <rect key={i} x={x + 8 + i * 18} y={h / 2 - 3} width={10} height={6} rx={3} fill="#1a1d22" />
+          ))}
+        </g>
+      ))}
+      <text x={side / 2} y={h - 5} fontSize={6} fill="#6b7280" textAnchor="middle">
+        10"→19"
+      </text>
     </g>
   )
 }

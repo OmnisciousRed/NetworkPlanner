@@ -1,5 +1,5 @@
-import { useRef } from 'react'
 import {
+  BookOpen,
   Boxes,
   Copy,
   Download,
@@ -25,9 +25,13 @@ import {
 import { useProjectStore } from '@/store/projectStore'
 import { toast, useUiStore, type AppView } from '@/store/uiStore'
 import { saveNow } from '@/store/autosave'
-import { duplicateProject, importProjectJson, loadDemoProject, newProject, renameProject } from '@/store/actions/project'
-import { bomCsv, cableCsv, downloadText, ipamCsv, projectMarkdown, projectToJson, safeFileName } from '@/utils/importExport'
+import { duplicateProject, loadDemoProject, newProject, renameProject } from '@/store/actions/project'
+import { bomCsv, cableCsv, ipamCsv, projectMarkdown, projectToJson, safeFileName } from '@/utils/importExport'
 import { Button } from '@/components/ui/button'
+import { askText } from './AskDialog'
+import { HELP_SECTION } from '@/components/HelpButton'
+import { closeHelp, openHelp } from '@/store/navigation'
+import { showExport, showImport } from './ExportDialog'
 import { Tooltip } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
@@ -61,16 +65,29 @@ export function TopBar() {
   const set = useUiStore((s) => s.set)
   const theme = useUiStore((s) => s.theme)
   const openDialog = useUiStore((s) => s.openDialog)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const exportJson = () => {
     const p = useProjectStore.getState().project
-    downloadText(`${safeFileName(p.name)}.networkplanner.json`, projectToJson(p), 'application/json')
+    showExport({
+      title: 'Projekt exportieren (JSON)',
+      description: 'Sicherung des kompletten Projekts – kann über „Projekt importieren“ wieder geladen werden.',
+      filename: `${safeFileName(p.name)}.networkplanner.json`,
+      text: projectToJson(p),
+      mime: 'application/json',
+    })
   }
   const exportCsv = (kind: 'bom' | 'cables' | 'ipam') => {
     const p = useProjectStore.getState().project
     const text = kind === 'bom' ? bomCsv(p) : kind === 'cables' ? cableCsv(p) : ipamCsv(p)
-    downloadText(`${safeFileName(p.name)}_${kind === 'bom' ? 'Stueckliste' : kind === 'cables' ? 'Kabelliste' : 'IP-Plan'}.csv`, '﻿' + text, 'text/csv')
+    const label = kind === 'bom' ? 'Stückliste' : kind === 'cables' ? 'Kabelliste' : 'IP-Plan'
+    showExport({
+      title: `${label} (CSV)`,
+      description: 'Öffnet sich in Excel, LibreOffice oder Google Sheets.',
+      filename: `${safeFileName(p.name)}_${kind === 'bom' ? 'Stueckliste' : kind === 'cables' ? 'Kabelliste' : 'IP-Plan'}.csv`,
+      text,
+      mime: 'text/csv',
+      bom: true,
+    })
   }
 
   return (
@@ -98,8 +115,11 @@ export function TopBar() {
               <FolderOpen /> Projekte öffnen …
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => {
-                const n = window.prompt('Projektname', name)
+              onClick={async () => {
+                const n = await askText('Projekt umbenennen', 'Projektname', name, {
+                  confirmLabel: 'Umbenennen',
+                  validate: (v) => (v.trim() ? null : 'Bitte einen Namen eingeben'),
+                })
                 if (n?.trim()) renameProject(n.trim())
               }}
             >
@@ -117,8 +137,8 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Import / Export</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => fileRef.current?.click()}>
-              <Upload /> Projekt importieren (JSON)
+            <DropdownMenuItem onClick={() => showImport()}>
+              <Upload /> Projekt importieren (JSON) …
             </DropdownMenuItem>
             <DropdownMenuItem onClick={exportJson}>
               <FileJson /> Projekt exportieren (JSON)
@@ -135,24 +155,19 @@ export function TopBar() {
             <DropdownMenuItem
               onClick={() => {
                 const p = useProjectStore.getState().project
-                downloadText(`${safeFileName(p.name)}.md`, projectMarkdown(p), 'text/markdown')
+                showExport({
+                  title: 'Dokumentation (Markdown)',
+                  description: 'Lesbare Projektdokumentation mit Geräten, Racks, VLANs, IP-Plan und Kabeln.',
+                  filename: `${safeFileName(p.name)}.md`,
+                  text: projectMarkdown(p),
+                  mime: 'text/markdown',
+                })
               }}
             >
               <Download /> Dokumentation (Markdown)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={async (e) => {
-            const f = e.target.files?.[0]
-            e.target.value = ''
-            if (f) await importProjectJson(await f.text())
-          }}
-        />
       </div>
 
       <nav className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5">
@@ -187,6 +202,11 @@ export function TopBar() {
         <Tooltip content={dirty ? 'Ungespeicherte Änderungen – wird automatisch gesichert' : 'Alle Änderungen gespeichert (IndexedDB)'}>
           <Button size="icon-sm" variant="ghost" onClick={() => saveNow(true)}>
             <Save className={dirty ? 'text-warning' : undefined} />
+          </Button>
+        </Tooltip>
+        <Tooltip content="Handbuch öffnen (F1)">
+          <Button size="sm" variant={view === 'help' ? 'secondary' : 'ghost'} onClick={() => (view === 'help' ? closeHelp() : openHelp(HELP_SECTION[view]))} data-testid="open-manual">
+            <BookOpen /> <span className="hidden md:inline">Handbuch</span>
           </Button>
         </Tooltip>
         <Tooltip content="Tastaturkürzel">

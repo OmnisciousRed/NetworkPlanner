@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FilePlus2, FolderOpen, Sparkles, Trash2 } from 'lucide-react'
+import { BookOpen, FilePlus2, FolderOpen, Sparkles, Trash2 } from 'lucide-react'
 import type { ProjectMeta } from '@/models'
 import { useProjectStore } from '@/store/projectStore'
 import { useUiStore } from '@/store/uiStore'
@@ -8,6 +8,8 @@ import { deleteStoredProject, loadDemoProject, newProject, openStoredProject } f
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { isMac } from '@/lib/utils'
+import { askConfirm } from './AskDialog'
+import { openHelp } from '@/store/navigation'
 
 export function ProjectsDialog() {
   const open = useUiStore((s) => s.dialogs.projects)
@@ -51,7 +53,11 @@ export function ProjectsDialog() {
                 variant="ghost"
                 disabled={p.id === currentId}
                 onClick={async () => {
-                  if (!window.confirm(`Projekt „${p.name}“ endgültig löschen?`)) return
+                  const ok = await askConfirm(`Projekt „${p.name}“ löschen?`, 'Das Projekt wird endgültig aus diesem Browser entfernt. Tipp: vorher über das Projektmenü als JSON exportieren.', {
+                    confirmLabel: 'Endgültig löschen',
+                    destructive: true,
+                  })
+                  if (!ok) return
                   await deleteStoredProject(p.id)
                   setList(await listProjects())
                 }}
@@ -96,6 +102,7 @@ const SHORTCUTS: [string, string][] = [
   ['Shift + Klick / Rahmen', 'Mehrfachauswahl'],
   ['Alt beim Ziehen', 'Einrasten kurz deaktivieren'],
   ['Esc', 'Auswahl aufheben'],
+  ['F1', 'Handbuch zum aktuellen Bereich'],
 ]
 
 export function ShortcutsDialog() {
@@ -160,6 +167,21 @@ export function WelcomeDialog() {
             <div className="text-xs text-muted-foreground">Mit dem ersten Server im Hardware Builder starten</div>
           </button>
         </div>
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed p-3 text-left hover:border-primary"
+          onClick={() => {
+            openDialog('welcome', false)
+            openHelp('schnellstart')
+          }}
+          data-testid="welcome-manual"
+        >
+          <BookOpen className="size-5 shrink-0 text-primary" />
+          <span>
+            <span className="block text-sm font-semibold">Neu hier? Handbuch lesen</span>
+            <span className="block text-xs text-muted-foreground">Schritt für Schritt erklärt – jederzeit auch über „Handbuch“ oben rechts oder F1.</span>
+          </span>
+        </button>
       </DialogContent>
     </Dialog>
   )

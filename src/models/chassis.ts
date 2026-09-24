@@ -1,11 +1,14 @@
 import type { Id, Size } from './common'
 import type { MainboardFormFactor, Slot } from './component'
+import type { RackStandard } from './rack'
 
 export type ChassisFormFactor = 'rack' | 'tower'
 
 /** Parameters from which a chassis layout is generated (also used for custom chassis). */
 export interface ChassisParams {
   formFactor: ChassisFormFactor
+  /** rack width standard, rack chassis only (default 19") */
+  rackStandard?: RackStandard
   /** rack units, rack chassis only */
   heightU: number
   bays35: number

@@ -1,4 +1,6 @@
-import type { Device, Id, Rack } from '@/models'
+import type { Device, Id, Rack, RackStandard } from '@/models'
+import { rackStandardOf } from '@/models'
+import { findRackPreset } from '@/data/rackCatalog'
 import { findDeviceTemplate } from '@/data/deviceCatalog'
 import { createDeviceFromTemplate, createRack } from '@/utils/factory'
 import { canPlace, findFreePosition, rackOccupancy } from '@/utils/rack'
@@ -7,10 +9,26 @@ import { commit, getProject } from '../projectStore'
 import { baseNameFromTemplate, uniqueDeviceName } from './devices'
 import { toast } from '../uiStore'
 
-export function addRack(name?: string, heightU = 42): Id {
+export function addRack(name?: string, heightU = 42, standard: RackStandard = '19'): Id {
   const project = getProject()
   const n = name ?? `Rack ${String(Object.keys(project.racks).length + 1).padStart(2, '0')}`
-  const rack = createRack(n, heightU)
+  const rack = createRack(n, heightU, standard)
+  commit(`${rack.name} erstellt`, (d) => {
+    d.racks[rack.id] = rack
+  })
+  return rack.id
+}
+
+/** creates a rack from a preset (e.g. a 10" DeskPi RackMate T2) */
+export function addRackFromPreset(presetId: string): Id | null {
+  const preset = findRackPreset(presetId)
+  if (!preset) return null
+  const project = getProject()
+  const { id: _presetId, label: _label, description: _description, defaultName, ...values } = preset
+  const taken = new Set(Object.values(project.racks).map((r) => r.name))
+  let name = defaultName ?? `Rack ${String(Object.keys(project.racks).length + 1).padStart(2, '0')}`
+  for (let i = 2; taken.has(name); i++) name = `${defaultName ?? 'Rack'} ${String(i).padStart(2, '0')}`
+  const rack: Rack = { ...createRack(name, values.heightU, values.standard ?? '19'), ...values, name }
   commit(`${rack.name} erstellt`, (d) => {
     d.racks[rack.id] = rack
   })
@@ -95,7 +113,7 @@ export function fillWithBlanks(rackId: Id) {
   const rack = project.racks[rackId]
   if (!rack) return
   const occ = rackOccupancy(project, rackId)
-  const t = findDeviceTemplate('rack-blank-1u')!
+  const t = findDeviceTemplate(rackStandardOf(rack) === '10' ? 'rack10-blank-1u' : 'rack-blank-1u')!
   const created: Device[] = []
   for (let u = 1; u <= rack.heightU; u++) {
     if (occ.has(u)) continue

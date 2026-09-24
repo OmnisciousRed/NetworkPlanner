@@ -1,5 +1,5 @@
 import type { Project } from '@/models'
-import { SCHEMA_VERSION, uid } from '@/models'
+import { RACK_STANDARD_LABEL, SCHEMA_VERSION, rackStandardOf, uid } from '@/models'
 import { createProject } from './factory'
 import { collectIpam } from './ip'
 import { buildOneLiner, formatCapacity, summarizeBuild } from './buildSummary'
@@ -127,7 +127,7 @@ export function projectMarkdown(p: Project): string {
   const lines: string[] = [`# ${p.name}`, '', `Stand: ${new Date(p.updatedAt).toLocaleString('de-DE')}`, '']
   lines.push('## Racks', '')
   for (const r of Object.values(p.racks)) {
-    lines.push(`### ${r.name} (${r.heightU}U)`, '')
+    lines.push(`### ${r.name} (${RACK_STANDARD_LABEL[rackStandardOf(r)]}, ${r.heightU}U)`, '')
     const devs = Object.values(p.devices)
       .filter((d) => d.rackPlacement?.rackId === r.id)
       .sort((a, b) => b.rackPlacement!.positionU - a.rackPlacement!.positionU)

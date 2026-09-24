@@ -3,6 +3,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { TopBar } from '@/components/layout/TopBar'
 import { Toaster } from '@/components/layout/Toaster'
 import { ProjectsDialog, ShortcutsDialog, WelcomeDialog } from '@/components/layout/Dialogs'
+import { AskDialog } from '@/components/layout/AskDialog'
+import { ExportDialog, ImportDialog } from '@/components/layout/ExportDialog'
+import { HELP_SECTION } from '@/components/HelpButton'
+import { closeHelp, openHelp } from '@/store/navigation'
 import { CustomTemplateDialog } from '@/components/layout/CustomTemplateDialog'
 import { Inspector } from '@/components/inspector/Inspector'
 import { ChassisPickerDialog } from '@/editors/hardware/ChassisPicker'
@@ -18,6 +22,7 @@ const RackEditor = lazy(() => import('@/editors/rack/RackEditor').then((m) => ({
 const NetworkEditor = lazy(() => import('@/editors/network/NetworkEditor').then((m) => ({ default: m.NetworkEditor })))
 const IpamPage = lazy(() => import('@/pages/IpamPage').then((m) => ({ default: m.IpamPage })))
 const OverviewPage = lazy(() => import('@/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })))
+const HelpPage = lazy(() => import('@/pages/HelpPage').then((m) => ({ default: m.HelpPage })))
 
 function Loading() {
   return <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Lade Editor …</div>
@@ -26,6 +31,13 @@ function Loading() {
 function useGlobalShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault()
+        const view = useUiStore.getState().view
+        if (view === 'help') closeHelp()
+        else openHelp(HELP_SECTION[view])
+        return
+      }
       if (!isModKey(e)) return
       const key = e.key.toLowerCase()
       if (key === 's') {
@@ -92,8 +104,9 @@ export function App() {
               {view === 'rack' && <RackEditor />}
               {view === 'network' && <NetworkEditor />}
               {view === 'ipam' && <IpamPage />}
+              {view === 'help' && <HelpPage />}
             </Suspense>
-            {view !== 'overview' && view !== 'ipam' && <Inspector />}
+            {view !== 'overview' && view !== 'ipam' && view !== 'help' && <Inspector />}
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Projekt wird geladen …</div>
@@ -105,6 +118,9 @@ export function App() {
       <ProjectsDialog />
       <ShortcutsDialog />
       <WelcomeDialog />
+      <AskDialog />
+      <ExportDialog />
+      <ImportDialog />
     </TooltipProvider>
   )
 }

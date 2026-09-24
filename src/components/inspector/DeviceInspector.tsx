@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Copy, Eye, EyeOff, Network, Plus, Server, Trash2, Wrench, X } from 'lucide-react'
-import type { Device, Id, StaticRoute } from '@/models'
-import { DEVICE_HEIGHTS_U, uid } from '@/models'
+import type { Device, Id, RackStandard, StaticRoute } from '@/models'
+import { DEVICE_HEIGHTS_U, RACK_STANDARD_LABEL, uid } from '@/models'
 import { useProjectStore } from '@/store/projectStore'
 import { deleteDevices, duplicateDevices, setHiddenInNetwork, updateDevice } from '@/store/actions/devices'
 import { placeDevice, placeDeviceAuto, unplaceDevice } from '@/store/actions/rack'
@@ -12,7 +12,7 @@ import { InfoButton } from '@/components/InfoButton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { summarizeBuild, formatCapacity } from '@/utils/buildSummary'
-import { getDeviceDepth, getDeviceHeightU, getDevicePower, getDeviceWeight, isRackable } from '@/utils/device'
+import { getDeviceDepth, getDeviceHeightU, getDevicePower, getDeviceRackStandard, getDeviceWeight, isRackable, isShelfDevice } from '@/utils/device'
 import { analyzeBuild, worstLevel } from '@/utils/compatibility'
 import { canPlace } from '@/utils/rack'
 import { isValidCidr, parseIp } from '@/utils/ip'
@@ -193,7 +193,7 @@ export function DeviceInspector({ device }: { device: Device }) {
           {device.build ? (
             <>
               <KV label="Gehäuse">{device.build.chassis.name}</KV>
-              <KV label="Höhe">{device.build.chassis.params.formFactor === 'rack' ? `${device.build.chassis.params.heightU} HE` : `${device.build.chassis.params.heightMm} mm (Tower)`}</KV>
+              <KV label="Höhe">{device.build.chassis.params.formFactor === 'rack' ? `${device.build.chassis.params.heightU} HE · ${RACK_STANDARD_LABEL[getDeviceRackStandard(device)]}` : `${device.build.chassis.params.heightMm} mm (Tower)`}</KV>
               <KV label="Breite × Tiefe">{`${device.build.chassis.params.widthMm} × ${getDeviceDepth(device)} mm`}</KV>
               <KV label="Gewicht (berechnet)">{`${getDeviceWeight(device)} kg`}</KV>
             </>
@@ -211,6 +211,25 @@ export function DeviceInspector({ device }: { device: Device }) {
                   <NumberField value={device.depthMm} unit="mm" min={0} onChange={(v) => upd((d) => (d.depthMm = v), 'depth')} />
                 </Field>
               </Row>
+              {device.formFactor === 'rack' ? (
+                <Field label="Rackbreite" hint={getDeviceRackStandard(device) === '10' ? 'passt in 10"-Racks und mit Adapter in 19"-Racks' : 'passt nur in 19"-Racks'}>
+                  <SelectField<RackStandard>
+                    value={getDeviceRackStandard(device)}
+                    options={[
+                      { value: '19', label: '19 Zoll' },
+                      { value: '10', label: '10 Zoll (Mini-Rack)' },
+                    ]}
+                    onChange={(v) => upd((d) => (d.rackStandard = v), 'std')}
+                  />
+                </Field>
+              ) : (
+                isShelfDevice(device) &&
+                device.heightU && (
+                  <Field label="Breite" hint="Tischgerät – steht im Rack auf einem Einlegeboden">
+                    <NumberField value={device.widthMm} unit="mm" min={0} onChange={(v) => upd((d) => (d.widthMm = v || undefined), 'width')} />
+                  </Field>
+                )
+              )}
               <Row>
                 <Field label="Gewicht">
                   <NumberField value={device.weightKg} unit="kg" step={0.1} min={0} onChange={(v) => upd((d) => (d.weightKg = v), 'kg')} />

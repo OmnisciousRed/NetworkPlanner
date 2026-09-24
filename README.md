@@ -15,6 +15,9 @@ npm test           # Unit-Tests (Vitest)
 npm run build      # Typecheck + Produktions-Build
 ```
 
+📖 **[Handbuch](docs/HANDBUCH.md)** – Schritt-für-Schritt-Anleitung für alle Bereiche, 10-Zoll-Mini-Racks,
+Netzwerk-Grundlagen, FAQ und Glossar. In der App über **Handbuch** oben rechts, **F1** oder das **?** in jedem Bereich.
+
 Beim ersten Start kann das **Demo-Homelab** geladen werden (3 selbst gebaute Server, 24U-Rack,
 VLAN-segmentiertes Netzwerk, Docker-Dienste) – oder man startet leer mit dem ersten Server.
 Projekte werden automatisch lokal im Browser (IndexedDB) gespeichert.
@@ -54,7 +57,8 @@ Von jedem Objekt aus kann man in die anderen Ebenen springen (Inspector: *Hardwa
 
 ## Rack Builder
 
-- Beliebig viele Racks (6–48 HE), Vorder- und Rückansicht mit gezeichneten Frontblenden
+- Beliebig viele Racks (4–48 HE) in **19 Zoll** oder **10 Zoll** (Mini-Racks wie der DeskPi RackMate T2) aus Vorlagen,
+  Vorder- und Rückansicht mit gezeichneten Frontblenden
   (Server mit echten Laufwerksschächten aus dem Build, Switches mit Ports, Patchpanel, PDU, USV, Einlegeboden,
   Kabelmanagement, Blindblenden).
 - Geräte per Drag & Drop einsetzen, verschieben (auch zwischen Racks), mit ↑/↓ um eine HE bewegen,
@@ -63,7 +67,14 @@ Von jedem Objekt aus kann man in die anderen Ebenen springen (Inspector: *Hardwa
   Gewicht, Abwärme (BTU/h), geschätzter Temperaturanstieg, Energiekosten, **USV-Last und Laufzeit**, PDU-Kapazität,
   Warnungen (Traglast, Leistung, Tiefe, USV-Position).
 
+- **10-Zoll-Racks:** 19-Zoll-Geräte werden abgewiesen („passt nicht in das 10-Zoll-Rack“), die Bibliothek zeigt nur
+  passende Teile (10"-Switch, -Patchpanel, -Steckdosenleiste, -Einlegeböden, Pi-Halterung …), Tischgeräte wie
+  Mini-PC, Raspberry Pi oder NAS stehen auf einem Einlegeboden. 10"-Geräte passen mit Adapter auch ins 19"-Rack.
+  Eigene 10"-Server: Gehäuse *10" 2U Mini-ITX* mit SFX-Netzteil oder *Custom* mit Rackbreite 10 Zoll.
+
 ![Rack Builder](docs/screenshots/rack-builder.png)
+
+![10-Zoll-Rack neben 19-Zoll-Rack](docs/screenshots/rack-10zoll.png)
 
 ## Netzwerk-Designer
 
@@ -99,8 +110,14 @@ Von jedem Objekt aus kann man in die anderen Ebenen springen (Inspector: *Hardwa
 - **Eigene Komponenten**: Bauteile, Mainboards (Slots werden aus Sockel/RAM/PCIe/M.2 generiert) und
   Geräte (Höhe, Maße, Portgruppen) – erscheinen danach in den Bibliotheken.
 - **Undo/Redo** für alle Änderungen, Autosave in IndexedDB, mehrere Projekte.
-- Import/Export: Projekt als JSON, Stückliste, Kabelliste und IP-Plan als CSV, Dokumentation als Markdown.
+- Import/Export: Projekt als JSON, Stückliste, Kabelliste und IP-Plan als CSV, Dokumentation als Markdown –
+  jeweils mit **Herunterladen** und **Kopieren** (funktioniert auch, wo der Browser Downloads blockiert);
+  Import per Datei oder eingefügtem Text.
+- **Eingebautes Handbuch** mit Inhaltsverzeichnis, Suche und Sprung zum passenden Kapitel (F1 / **?**).
+- Alle Rückfragen (Umbenennen, Löschen, Routen) als eigene Dialoge statt Browser-Popups.
 - Hell/Dunkel-Design.
+
+![Handbuch in der App](docs/screenshots/handbuch.png)
 
 ### Tastaturkürzel
 
@@ -114,6 +131,7 @@ Von jedem Objekt aus kann man in die anderen Ebenen springen (Inspector: *Hardwa
 | R, I, U | Drehen, Einbauen, Ausbauen (Hardware) |
 | V, H, C | Auswahl-, Hand-, Kabel-Werkzeug (Hardware) |
 | Leertaste + Ziehen, Mausrad | Verschieben, Zoomen |
+| F1 | Handbuch zum aktuellen Bereich |
 
 ## Architektur
 
@@ -127,7 +145,7 @@ src/
 ├── store/         Zustand-Store (Projekt + Undo/Redo-Historie), UI-Store, Aktionen, IndexedDB-Autosave
 ├── editors/       hardware/ (SVG-Canvas & Ansichten), rack/, network/ (React Flow)
 ├── components/    ui/ (shadcn-Stil), hardware/ & rack/ (Illustrationen), inspector/, layout/
-├── pages/         Übersicht, VLAN & IP
+├── pages/         Übersicht, VLAN & IP, Handbuch (rendert docs/HANDBUCH.md)
 └── tests/         Vitest-Tests
 ```
 
@@ -166,4 +184,4 @@ npm test
 
 Abgedeckt sind u. a. Layout-Generatoren, Kompatibilitätsregeln, Einbau/Tausch/Ausbau inkl.
 Mainboard-Wechsel, Port-Synchronisation Hardware ↔ Netzwerk, VLAN-Propagation, Rack-Platzierung
-und -Analyse, IP-Planung, Undo/Redo sowie Import/Export.
+und -Analyse inkl. 10-Zoll-Racks, IP-Planung, Undo/Redo sowie Import/Export.

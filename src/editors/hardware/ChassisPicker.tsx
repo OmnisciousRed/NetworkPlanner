@@ -28,20 +28,30 @@ function ChassisThumb({ params }: { params: ChassisParams }) {
     )
   const u = params.heightU
   const h = u * 14
+  const ten = params.rackStandard === '10'
+  // 10" panels are about half as wide as 19" panels
+  const W = ten ? 60 : 116
+  const x0 = (120 - W) / 2
   const bays = params.bays35 + params.bays25
-  const cols = params.bays35 ? 4 : Math.min(24, params.bays25)
+  const cols = params.bays35 ? (ten ? 2 : 4) : Math.min(ten ? 4 : 24, params.bays25)
   const rows = Math.max(1, Math.ceil(bays / cols))
+  const inner = W - 28
   return (
     <svg viewBox={`0 0 120 ${Math.max(h, 20) + 8}`} className="h-20 w-full">
-      <rect x={2} y={4} width={116} height={h} rx={2} fill="#2b3037" stroke="#11151a" />
-      <rect x={2} y={4} width={5} height={h} fill="#4b5563" />
-      <rect x={113} y={4} width={5} height={h} fill="#4b5563" />
+      <rect x={x0} y={4} width={W} height={h} rx={2} fill="#2b3037" stroke="#11151a" />
+      <rect x={x0} y={4} width={5} height={h} fill="#4b5563" />
+      <rect x={x0 + W - 5} y={4} width={5} height={h} fill="#4b5563" />
       {Array.from({ length: bays }, (_, i) => {
-        const bw = (88 / cols) - 1
+        const bw = inner / cols - 1
         const bh = (h - 4) / rows - 1
-        return <rect key={i} x={10 + (i % cols) * (bw + 1)} y={6 + Math.floor(i / cols) * (bh + 1)} width={bw} height={bh} rx={0.5} fill="#4b5563" />
+        return <rect key={i} x={x0 + 8 + (i % cols) * (bw + 1)} y={6 + Math.floor(i / cols) * (bh + 1)} width={bw} height={bh} rx={0.5} fill="#4b5563" />
       })}
-      <circle cx={106} cy={4 + h / 2} r={2} fill="#22c55e" />
+      <circle cx={x0 + W - 12} cy={4 + h / 2} r={2} fill="#22c55e" />
+      {ten && (
+        <text x={x0 + W + 4} y={4 + h / 2} fontSize={9} fontWeight={700} fill="var(--primary)" dominantBaseline="central">
+          10"
+        </text>
+      )}
     </svg>
   )
 }
@@ -70,7 +80,7 @@ export function ChassisPickerPanel({ onDone, compact }: { onDone?: () => void; c
     const id = createBuiltDeviceAction(kind, name.trim() || nextDeviceName(kind), chassisName, params, isCustom ? undefined : selected.id)
     if (basics) {
       const rack = params.formFactor === 'rack'
-      const psu = rack ? (params.heightU >= 2 ? 'psu-crps-1600' : 'psu-crps-800') : 'psu-atx-850'
+      const psu = rack ? (params.rackStandard === '10' ? 'psu-sfx-450' : params.heightU >= 2 ? 'psu-crps-1600' : 'psu-crps-800') : 'psu-atx-850'
       const fan = rack ? (params.fanSizeMm >= 80 ? 'fan-80' : params.fanSizeMm >= 60 ? 'fan-60' : 'fan-40') : 'fan-120'
       for (let i = 0; i < (rack ? params.psuBays : 1); i++) addComponentFromTemplate(id, psu, { auto: true })
       for (let i = 0; i < params.fanSlots; i++) addComponentFromTemplate(id, fan, { auto: true })
@@ -89,7 +99,7 @@ export function ChassisPickerPanel({ onDone, compact }: { onDone?: () => void; c
           <TextField value={name} placeholder={nextDeviceName(kind)} onChange={setName} data-testid="new-device-name" />
         </Field>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {templates.map((t) => (
           <button
             key={t.id}

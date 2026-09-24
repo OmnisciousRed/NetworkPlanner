@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Battery, Gauge, Thermometer, Trash2, TriangleAlert, Weight, Zap } from 'lucide-react'
-import type { Id, Rack } from '@/models'
-import { RACK_HEIGHTS } from '@/models'
+import type { Id, Rack, RackStandard } from '@/models'
+import { RACK_HEIGHTS, RACK_STANDARD_LABEL, rackStandardOf } from '@/models'
 import { useProjectStore } from '@/store/projectStore'
 import { deleteRack, fillWithBlanks, removeBlanks, updateRack } from '@/store/actions/rack'
 import { analyzeRack } from '@/utils/rack'
@@ -122,29 +122,48 @@ export function RackInspector({ id }: { id: Id }) {
           <TextField value={rack.name} onChange={(v) => upd({ name: v }, 'name')} />
         </Field>
         <Row>
-          <Field label="Höhe">
-            <SelectField value={rack.heightU} options={RACK_HEIGHTS.map((h) => ({ value: h, label: `${h} HE` }))} onChange={(v) => upd({ heightU: v }, 'h')} />
+          <Field label="Rackbreite" hint="10 Zoll = Mini-Rack">
+            <SelectField<RackStandard>
+              value={rackStandardOf(rack)}
+              options={(['19', '10'] as const).map((v) => ({ value: v, label: RACK_STANDARD_LABEL[v] }))}
+              onChange={(v) => upd({ standard: v }, 'std')}
+            />
           </Field>
-          <Field label="Tiefe">
-            <NumberField value={rack.depthMm} unit="mm" min={200} max={1400} step={50} onChange={(v) => upd({ depthMm: v }, 'd')} />
+          <Field label="Höhe">
+            <SelectField
+              value={rack.heightU}
+              options={[...new Set([...RACK_HEIGHTS, rack.heightU])].sort((a, b) => a - b).map((h) => ({ value: h, label: `${h} HE` }))}
+              onChange={(v) => upd({ heightU: v }, 'h')}
+            />
           </Field>
         </Row>
         <Row>
-          <Field label="Max. Zuladung">
-            <NumberField value={rack.maxLoadKg} unit="kg" min={10} onChange={(v) => upd({ maxLoadKg: v }, 'load')} />
+          <Field label="Tiefe (innen)">
+            <NumberField value={rack.depthMm} unit="mm" min={100} max={1400} step={10} onChange={(v) => upd({ depthMm: v }, 'd')} />
           </Field>
-          <Field label="Verfügbare Leistung">
+          <Field label="Außenbreite">
+            <NumberField value={rack.widthMm} unit="mm" min={100} max={1200} step={10} onChange={(v) => upd({ widthMm: v }, 'w')} />
+          </Field>
+        </Row>
+        <Row>
+          <Field label="Leergewicht" hint="leeres Rack">
+            <NumberField value={rack.emptyWeightKg} unit="kg" min={0} step={0.1} onChange={(v) => upd({ emptyWeightKg: v }, 'empty')} />
+          </Field>
+          <Field label="Max. Zuladung" hint="alle Geräte zusammen">
+            <NumberField value={rack.maxLoadKg} unit="kg" min={1} onChange={(v) => upd({ maxLoadKg: v }, 'load')} />
+          </Field>
+        </Row>
+        <Row>
+          <Field label="Verfügbare Leistung" hint="Schuko 16 A ≈ 3680 W">
             <NumberField value={rack.maxPowerW} unit="W" min={100} step={100} onChange={(v) => upd({ maxPowerW: v }, 'pw')} />
           </Field>
-        </Row>
-        <Row>
           <Field label="Luftstrom">
             <NumberField value={rack.airflowM3h} unit="m³/h" min={0} step={50} onChange={(v) => upd({ airflowM3h: v }, 'air')} />
           </Field>
-          <Field label="Standort">
-            <TextField value={rack.location} placeholder="Keller" onChange={(v) => upd({ location: v }, 'loc')} />
-          </Field>
         </Row>
+        <Field label="Standort">
+          <TextField value={rack.location} placeholder="Keller" onChange={(v) => upd({ location: v }, 'loc')} />
+        </Field>
         <div className="flex flex-wrap gap-1.5 pt-1">
           <Button size="sm" variant="outline" onClick={() => fillWithBlanks(id)}>
             Leere HE mit Blindblenden füllen

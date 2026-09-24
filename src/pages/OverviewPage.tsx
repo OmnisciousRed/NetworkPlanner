@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   ArrowLeftRight,
+  BookOpen,
   Boxes,
   CheckCircle2,
   ChevronRight,
@@ -17,7 +18,7 @@ import {
   Zap,
 } from 'lucide-react'
 import type { Device, HardwareComponent, Project } from '@/models'
-import { RACK_PANEL_MM, U_MM } from '@/models'
+import { PANEL_MM, U_MM, rackStandardOf } from '@/models'
 import { useProjectStore } from '@/store/projectStore'
 import { useUiStore } from '@/store/uiStore'
 import { openInHardware, openRack, openVlan, showConnection, showInNetwork, showInRack } from '@/store/navigation'
@@ -25,7 +26,7 @@ import { renameProject, updateProjectMeta, loadDemoProject } from '@/store/actio
 import { DEVICE_KINDS, CATEGORY_LABELS } from '@/data/deviceKinds'
 import { DeviceIcon, ComponentIcon, COMPONENT_KIND_LABELS } from '@/components/icons'
 import { HardwareDefs } from '@/components/hardware/graphics'
-import { DeviceFaceplate } from '@/components/rack/Faceplate'
+import { DeviceFaceplate, widthInRack } from '@/components/rack/Faceplate'
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { analyzeBuild } from '@/utils/compatibility'
@@ -33,6 +34,7 @@ import { formatCapacity, summarizeBuild } from '@/utils/buildSummary'
 import { collectIpam } from '@/utils/ip'
 import { analyzeRack, devicesInRack } from '@/utils/rack'
 import { connectionsOfDevice, findPort, getDeviceHeightU, getDevicePorts, getDevicePower } from '@/utils/device'
+import { openHelp } from '@/store/navigation'
 import { cn } from '@/lib/utils'
 
 function Stat({ icon, label, value, sub, onClick }: { icon: React.ReactNode; label: string; value: React.ReactNode; sub?: React.ReactNode; onClick?: () => void }) {
@@ -161,27 +163,36 @@ function MiniRacks({ project }: { project: Project }) {
   if (!racks.length) return <div className="p-6 text-sm text-muted-foreground">Noch kein Rack.</div>
   const scale = 0.42
   const maxH = Math.max(...racks.map((r) => r.heightU))
-  const W = RACK_PANEL_MM + 40
+  const LABEL_W = 180
+  const xs: number[] = []
+  let total = 0
+  for (const r of racks) {
+    xs.push(total)
+    total += PANEL_MM[rackStandardOf(r)] + 40 + LABEL_W
+  }
   return (
-    <svg viewBox={`0 0 ${racks.length * (W + 160)} ${maxH * U_MM + 60}`} className="h-full w-full" style={{ maxHeight: maxH * U_MM * scale + 40 }}>
+    <svg viewBox={`0 0 ${total} ${maxH * U_MM + 60}`} className="h-full w-full" style={{ maxHeight: maxH * U_MM * scale + 40 }}>
       <HardwareDefs />
       {racks.map((r, i) => {
-        const x = i * (W + 160)
+        const pw = PANEL_MM[rackStandardOf(r)]
         return (
-          <g key={r.id} transform={`translate(${x} 0)`}>
+          <g key={r.id} transform={`translate(${xs[i]} 0)`}>
             <text x={0} y={22} fontSize={22} fontWeight={700} fill="var(--label)" style={{ cursor: 'pointer' }} onClick={() => openRack(r.id)}>
               {r.name}
             </text>
-            <rect x={0} y={34} width={W} height={r.heightU * U_MM + 16} rx={6} fill="#16191d" />
+            <rect x={0} y={34} width={pw + 40} height={r.heightU * U_MM + 16} rx={6} fill="#16191d" />
             {devicesInRack(project, r.id).map((d) => {
               const h = getDeviceHeightU(d) ?? 1
               const y = 42 + (r.heightU - (d.rackPlacement!.positionU + h - 1)) * U_MM
+              const off = (pw - widthInRack(d, pw)) / 2
               return (
                 <g key={d.id} transform={`translate(20 ${y})`} style={{ cursor: 'pointer' }} onClick={() => (d.build ? openInHardware(d.id) : showInRack(d.id))}>
-                  <DeviceFaceplate device={d} face="front" />
+                  <g transform={`translate(${off} 0)`}>
+                    <DeviceFaceplate device={d} face="front" shelfWidth={pw} />
+                  </g>
                   <title>{`${d.name} – U${d.rackPlacement!.positionU}`}</title>
                   {d.kind !== 'blank-panel' && (
-                    <text x={RACK_PANEL_MM + 30} y={(h * U_MM) / 2} fontSize={16} fill="var(--label)" dominantBaseline="central" fontWeight={600}>
+                    <text x={pw + 30} y={(h * U_MM) / 2} fontSize={16} fill="var(--label)" dominantBaseline="central" fontWeight={600}>
                       {d.name}
                       {d.build ? ' ✎' : ''}
                     </text>
@@ -332,6 +343,9 @@ export function OverviewPage() {
             </Button>
             <Button variant="outline" onClick={() => set({ view: 'network' })}>
               <Network /> Netzwerk
+            </Button>
+            <Button variant="outline" onClick={() => openHelp('schnellstart')} data-testid="overview-manual">
+              <BookOpen /> Erste Schritte
             </Button>
           </div>
         </div>

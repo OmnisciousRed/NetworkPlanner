@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Maximize, PanelTop, Plus, Search, Wrench, ZoomIn, ZoomOut } from 'lucide-react'
-import type { DeviceTemplate } from '@/models'
-import { RACK_HEIGHTS } from '@/models'
+import type { DeviceTemplate, Rack } from '@/models'
+import { RACK_STANDARD_LABEL, rackStandardOf } from '@/models'
 import { DEVICE_CATALOG } from '@/data/deviceCatalog'
+import { RACK_PRESETS } from '@/data/rackCatalog'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { useProjectStore } from '@/store/projectStore'
 import { toast, useUiStore } from '@/store/uiStore'
-import { addRack, addRackDeviceFromTemplate, fillWithBlanks, placeDevice, placeDeviceAuto, unplaceDevice } from '@/store/actions/rack'
-import { findFreePosition } from '@/utils/rack'
+import { addRackDeviceFromTemplate, addRackFromPreset, fillWithBlanks, placeDevice, placeDeviceAuto, unplaceDevice } from '@/store/actions/rack'
+import { findFreePosition, widthProblem } from '@/utils/rack'
 import { createDeviceFromTemplate } from '@/utils/factory'
 import { deleteDevices } from '@/store/actions/devices'
-import { getDeviceHeightU, isRackable } from '@/utils/device'
+import { getDeviceHeightU, getDeviceRackStandard, isRackable, isShelfDevice } from '@/utils/device'
 import { buildOneLiner } from '@/utils/buildSummary'
 import { isEditableTarget } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -20,11 +21,16 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { DeviceIcon } from '@/components/icons'
 import { InfoButton } from '@/components/InfoButton'
 import { cn } from '@/lib/utils'
+import { HelpButton } from '@/components/HelpButton'
+import { openHelp } from '@/store/navigation'
 import { RackCanvas, type RackCanvasHandle } from './RackCanvas'
 
-function TemplateRow({ t }: { t: DeviceTemplate }) {
+function TemplateRow({ t, misfit }: { t: DeviceTemplate; misfit?: string | null }) {
   const set = useUiStore((s) => s.set)
   const activeRackId = useUiStore((s) => s.activeRackId)
+  const probe = useMemo(() => createDeviceFromTemplate(t), [t])
+  const shelf = isShelfDevice(probe)
+  const std = getDeviceRackStandard(probe)
   return (
     <div
       draggable
@@ -35,13 +41,14 @@ function TemplateRow({ t }: { t: DeviceTemplate }) {
       }}
       onDragEnd={() => set({ drag: null })}
       onDoubleClick={() => {
-        if (!activeRackId) return
-        const pos = findFreePosition(useProjectStore.getState().project, activeRackId, createDeviceFromTemplate(t), t.kind === 'ups')
+        if (!activeRackId) return toast('Erst links ein Rack auswählen oder anlegen', 'info')
+        if (misfit) return toast(misfit, 'error')
+        const pos = findFreePosition(useProjectStore.getState().project, activeRackId, probe, t.kind === 'ups')
         if (pos !== null) addRackDeviceFromTemplate(t.id, activeRackId, pos)
         else toast('Kein freier Platz im Rack', 'error')
       }}
-      className="group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1 hover:bg-accent active:cursor-grabbing"
-      title="Ins Rack ziehen – Doppelklick setzt in den nächsten freien Platz"
+      className={cn('group flex cursor-grab items-center gap-2 rounded-md px-1.5 py-1 hover:bg-accent active:cursor-grabbing', misfit && 'opacity-50')}
+      title={misfit ?? 'Ins Rack ziehen – Doppelklick setzt in den nächsten freien Platz'}
       data-testid={`racklib-${t.id}`}
     >
       <div className="flex size-7 shrink-0 items-center justify-center rounded text-white" style={{ background: DEVICE_KINDS[t.kind].color }}>
@@ -54,6 +61,13 @@ function TemplateRow({ t }: { t: DeviceTemplate }) {
           {t.model ? ` · ${t.model}` : ''}
         </div>
       </div>
+      {shelf ? (
+        <span className="shrink-0 rounded bg-muted px-1 text-[9px] font-medium text-muted-foreground" title="Tischgerät – steht im Rack auf einem Einlegeboden">
+          Boden
+        </span>
+      ) : (
+        std === '10' && <span className="shrink-0 rounded bg-primary/10 px-1 text-[9px] font-semibold text-primary">10"</span>
+      )}
       <InfoButton device={t.kind} className="opacity-0 group-hover:opacity-100" />
     </div>
   )
@@ -66,21 +80,40 @@ function RackLibrary() {
   const select = useUiStore((s) => s.select)
   const openDialog = useUiStore((s) => s.openDialog)
   const [q, setQ] = useState('')
-  const [newHeight, setNewHeight] = useState(42)
+  const [preset, setPreset] = useState('r19-42')
   const racks = Object.values(project.racks).sort((a, b) => a.name.localeCompare(b.name))
+  const activeRack: Rack | undefined = activeRackId ? project.racks[activeRackId] : undefined
   const unplaced = Object.values(project.devices).filter((d) => isRackable(d) && !d.rackPlacement && d.kind !== 'blank-panel')
   const templates = useMemo(() => {
     const all = [...DEVICE_CATALOG, ...project.customTemplates.devices].filter((t) => t.formFactor === 'rack' || t.heightU)
     const needle = q.trim().toLowerCase()
     return needle ? all.filter((t) => `${t.name} ${DEVICE_KINDS[t.kind].label} ${t.model ?? ''}`.toLowerCase().includes(needle)) : all
   }, [project.customTemplates.devices, q])
+  /** why a template does not fit the active rack (e.g. 19" device in a 10" rack) */
+  const misfit = useMemo(() => {
+    const m = new Map<string, string>()
+    if (!activeRack) return m
+    for (const t of templates) {
+      const reason = widthProblem(activeRack, createDeviceFromTemplate(t))
+      if (reason) m.set(t.id, reason)
+    }
+    return m
+  }, [templates, activeRack])
+  const fitting = templates.filter((t) => !misfit.has(t.id))
   const groups: [string, DeviceTemplate[]][] = [
-    ['Server & Storage', templates.filter((t) => DEVICE_KINDS[t.kind].category === 'server')],
-    ['Netzwerk', templates.filter((t) => DEVICE_KINDS[t.kind].category === 'network')],
-    ['Strom', templates.filter((t) => t.kind === 'ups' || t.kind === 'pdu')],
-    ['Passiv', templates.filter((t) => ['patch-panel', 'shelf', 'cable-management', 'blank-panel'].includes(t.kind))],
-    ['Eigene', templates.filter((t) => t.custom && !['server', 'network'].includes(DEVICE_KINDS[t.kind].category))],
+    ['Server & Storage', fitting.filter((t) => DEVICE_KINDS[t.kind].category === 'server')],
+    ['Netzwerk', fitting.filter((t) => DEVICE_KINDS[t.kind].category === 'network')],
+    ['Strom', fitting.filter((t) => t.kind === 'ups' || t.kind === 'pdu')],
+    ['Passiv', fitting.filter((t) => ['patch-panel', 'shelf', 'cable-management', 'blank-panel'].includes(t.kind))],
+    ['Sonstiges', fitting.filter((t) => !['server', 'network'].includes(DEVICE_KINDS[t.kind].category) && !['ups', 'pdu', 'patch-panel', 'shelf', 'cable-management', 'blank-panel'].includes(t.kind))],
   ]
+  const misfits = templates.filter((t) => misfit.has(t.id))
+  const createRack = () => {
+    const id = addRackFromPreset(preset)
+    if (!id) return
+    set({ activeRackId: id })
+    select({ type: 'rack', id })
+  }
   return (
     <aside className="flex h-full w-[272px] shrink-0 flex-col border-r bg-card" data-testid="rack-library">
       <div className="space-y-2 border-b p-2.5">
@@ -98,31 +131,33 @@ function RackLibrary() {
             >
               <PanelTop className="size-4" />
               <span className="flex-1 truncate">{r.name}</span>
-              <span className="text-xs text-muted-foreground">{r.heightU}U</span>
+              <span className="text-xs text-muted-foreground">
+                {RACK_STANDARD_LABEL[rackStandardOf(r)]} · {r.heightU}U
+              </span>
             </button>
           ))}
         </div>
-        <div className="flex gap-1">
-          <NativeSelect value={newHeight} onChange={(e) => setNewHeight(Number(e.target.value))} className="h-7 w-20 text-xs">
-            {RACK_HEIGHTS.map((h) => (
-              <option key={h} value={h}>
-                {h}U
-              </option>
-            ))}
+        <div className="space-y-1">
+          <NativeSelect value={preset} onChange={(e) => setPreset(e.target.value)} className="h-7 w-full text-xs" data-testid="rack-preset" aria-label="Rack-Vorlage">
+            <optgroup label="19 Zoll">
+              {RACK_PRESETS.filter((p) => p.standard === '19').map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="10 Zoll (Mini-Rack)">
+              {RACK_PRESETS.filter((p) => p.standard === '10').map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </optgroup>
           </NativeSelect>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              const id = addRack(undefined, newHeight)
-              set({ activeRackId: id })
-              select({ type: 'rack', id })
-            }}
-            data-testid="add-rack"
-          >
-            <Plus /> Rack
+          <Button size="sm" variant="outline" className="w-full" onClick={createRack} data-testid="add-rack">
+            <Plus /> Rack hinzufügen
           </Button>
+          <div className="text-[10px] leading-snug text-muted-foreground">{RACK_PRESETS.find((p) => p.id === preset)?.description} – Größe, Breite und Gewicht später rechts im Inspector anpassen.</div>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5 scroll-thin">
@@ -167,6 +202,14 @@ function RackLibrary() {
           <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Suchen" className="h-7 pl-7 text-xs" />
         </div>
+        {activeRack && rackStandardOf(activeRack) === '10' && (
+          <div className="mx-1 mb-1 rounded-md bg-primary/10 px-2 py-1.5 text-[11px] leading-snug text-primary">
+            „{activeRack.name}“ ist ein 10-Zoll-Rack: Es werden nur Teile gezeigt, die hineinpassen. Tischgeräte (Mini-PC, Raspberry Pi, NAS) stehen auf einem Einlegeboden.{' '}
+            <button type="button" className="cursor-pointer font-medium underline underline-offset-2" onClick={() => openHelp('zehn-zoll')}>
+              Mehr dazu
+            </button>
+          </div>
+        )}
         {groups
           .filter(([, ts]) => ts.length)
           .map(([g, ts]) => (
@@ -177,6 +220,14 @@ function RackLibrary() {
               ))}
             </div>
           ))}
+        {misfits.length > 0 && (
+          <details className="mb-1">
+            <summary className="cursor-pointer px-1.5 pb-0.5 pt-1 text-[11px] text-muted-foreground">Passt nicht in „{activeRack?.name}“ ({misfits.length})</summary>
+            {misfits.map((t) => (
+              <TemplateRow key={t.id} t={t} misfit={misfit.get(t.id)} />
+            ))}
+          </details>
+        )}
       </div>
     </aside>
   )
@@ -256,6 +307,7 @@ export function RackEditor() {
             <Button size="icon-sm" variant="ghost" onClick={() => api?.fit()}>
               <Maximize />
             </Button>
+            <HelpButton section="rack" />
           </div>
         </div>
         <div className="relative min-h-0 flex-1">

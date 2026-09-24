@@ -2,7 +2,7 @@ import type { Id, Point } from './common'
 import type { Chassis } from './chassis'
 import type { HardwareComponent, InternalLink } from './component'
 import type { NetworkInterface, StaticRoute } from './network'
-import type { RackPlacement } from './rack'
+import type { RackPlacement, RackStandard } from './rack'
 
 export type DeviceCategory = 'network' | 'server' | 'client' | 'service' | 'rack'
 
@@ -94,6 +94,8 @@ export interface Device {
   hostname?: string
   notes?: string
   formFactor: DeviceFormFactor
+  /** panel standard for non-built rack devices (default 19" for rack gear, 10" for small desktop gear) */
+  rackStandard?: RackStandard
   /** rack height for non-built rack devices */
   heightU?: number
   widthMm?: number
@@ -146,7 +148,9 @@ export interface DeviceTemplate {
   manufacturer?: string
   model?: string
   formFactor: DeviceFormFactor
+  rackStandard?: RackStandard
   heightU?: number
+  widthMm?: number
   depthMm?: number
   weightKg?: number
   powerW?: number

@@ -169,6 +169,7 @@ export const BAY_35 = { w: 150, h: 101 }
 export const BAY_35_TOWER = { w: 150, h: 28 }
 export const BAY_25 = { w: 102, h: 15 }
 export const PSU_RACK = { w: 190, h: 76 }
+export const PSU_SFX = { w: 125, h: 64 }
 export const PSU_TOWER = { w: 150, h: 86 }
 
 function bayFor(ff: MainboardFormFactor[]): Size {
@@ -199,7 +200,10 @@ function generateRack(p: ChassisParams): ChassisLayout {
   const slots: Slot[] = []
   const bay = bayFor(p.mainboardFormFactors)
   const margin = 12
-  const H = Math.max(440, margin + bay.h + 10 + PSU_RACK.h + margin)
+  const ten = p.rackStandard === '10'
+  const psu = ten ? PSU_SFX : PSU_RACK
+  // interior "height" of the top view is the usable width: ~430 mm for 19", ~210 mm for 10"
+  const H = Math.max(ten ? 230 : 440, margin + bay.h + 10 + psu.h + margin)
   const inner = H - 2 * margin
 
   // --- drive cage (front, left)
@@ -269,7 +273,7 @@ function generateRack(p: ChassisParams): ChassisLayout {
     meta: { formFactors: p.mainboardFormFactors },
   })
 
-  const psuTotal = p.psuBays * (PSU_RACK.w + 8) - 8
+  const psuTotal = p.psuBays * (psu.w + 8) - 8
   const W = boardX + Math.max(bay.w, psuTotal) + margin + 14
 
   // --- PSU bays (rear, below the board)
@@ -279,12 +283,12 @@ function generateRack(p: ChassisParams): ChassisLayout {
       kind: 'psu',
       label: `Netzteil ${i + 1}`,
       rect: {
-        x: W - 14 - margin - (i + 1) * (PSU_RACK.w + 8) + 8,
-        y: H - margin - PSU_RACK.h,
-        w: PSU_RACK.w,
-        h: PSU_RACK.h,
+        x: W - 14 - margin - (i + 1) * (psu.w + 8) + 8,
+        y: H - margin - psu.h,
+        w: psu.w,
+        h: psu.h,
       },
-      meta: { psuFormFactor: ['CRPS', 'Server'], hotSwap: p.hotSwap, order: i },
+      meta: { psuFormFactor: ten ? ['SFX', 'Server'] : ['CRPS', 'Server'], hotSwap: p.hotSwap, order: i },
     })
   }
 

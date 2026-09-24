@@ -1,10 +1,20 @@
 import { memo } from 'react'
 import type { ComponentOf, Device, HardwareComponent, NetworkInterface, Slot } from '@/models'
-import { RACK_PANEL_MM, U_MM } from '@/models'
+import { PANEL_MM, U_MM } from '@/models'
 import { formatSpeed } from '@/models'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { formatCapacity } from '@/utils/buildSummary'
-import { getDeviceHeightU } from '@/utils/device'
+import { getDeviceHeightU, getDeviceRackStandard, isShelfDevice } from '@/utils/device'
+
+/** width of the front panel (incl. ears) for a device: 482.6 mm for 19", 254 mm for 10" */
+export function devicePanelWidth(device: Device): number {
+  return PANEL_MM[getDeviceRackStandard(device)]
+}
+
+/** drawn width of a device in a rack: desktop devices stand on a shelf that spans the whole rack */
+export function widthInRack(device: Device, rackPanelW: number): number {
+  return isShelfDevice(device) ? rackPanelW : devicePanelWidth(device)
+}
 
 export const EAR = 15
 
@@ -430,7 +440,7 @@ function GenericFront({ device, w, h }: { device: Device; w: number; h: number }
       {(kind === 'nas' || kind === 'storage' || kind === 'server') &&
         Array.from({ length: kind === 'server' ? 8 : hU * 4 }, (_, i) => {
           const cols = kind === 'server' ? 8 : 4
-          const cw = kind === 'server' ? 18 : 90
+          const cw = kind === 'server' ? 18 : Math.min(90, (w - 2 * EAR - 20) / cols - 3)
           const ch = kind === 'server' ? h - 10 : (h - 8) / hU - 2
           return <rect key={i} x={EAR + 8 + (i % cols) * (cw + 3)} y={4 + Math.floor(i / cols) * (ch + 2)} width={cw} height={ch} rx={1} fill="#4b5563" stroke="#1f2937" strokeWidth={0.5} />
         })}
@@ -469,6 +479,50 @@ function GenericRear({ device, w, h }: { device: Device; w: number; h: number })
   )
 }
 
+
+/** desktop device (mini PC, Raspberry Pi, desktop NAS) standing on a rack shelf */
+function ShelfDevice({ device, w, h, face }: { device: Device; w: number; h: number; face: 'front' | 'rear' }) {
+  const bodyW = Math.min(device.widthMm ?? 160, w - 2 * EAR - 8)
+  const bodyH = Math.max(8, h - 9)
+  const x = EAR + 4
+  const kind = device.kind
+  const body =
+    kind === 'raspberry-pi' ? '#1f7a4d' : kind === 'nas' ? '#1f2328' : kind === 'mini-pc' ? '#2b2f36' : '#374151'
+  return (
+    <g>
+      {/* shelf */}
+      <rect x={EAR} y={h - 4} width={w - 2 * EAR} height={4} fill="#52525b" />
+      <rect x={0} y={h - 10} width={EAR} height={10} rx={1} fill="#3f3f46" />
+      <rect x={w - EAR} y={h - 10} width={EAR} height={10} rx={1} fill="#3f3f46" />
+      {/* device body */}
+      <rect x={x} y={h - 4 - bodyH} width={bodyW} height={bodyH} rx={3} fill={body} stroke="#0b0d10" strokeWidth={0.6} />
+      {face === 'front' ? (
+        <>
+          {kind === 'nas' &&
+            Array.from({ length: 4 }, (_, i) => (
+              <rect key={i} x={x + 6 + i * ((bodyW - 12) / 4)} y={h - 4 - bodyH + 6} width={(bodyW - 12) / 4 - 3} height={bodyH - 12} rx={1.5} fill="#3f4652" stroke="#111" strokeWidth={0.4} />
+            ))}
+          {kind !== 'nas' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={2.2} fill="#111" stroke="#9ca3af" strokeWidth={0.5} />}
+          {kind !== 'nas' && <circle cx={x + bodyW - 8} cy={h - 4 - bodyH / 2} r={0.9} fill="#22c55e" />}
+          {kind === 'mini-pc' && [0, 1].map((i) => <rect key={i} x={x + 8 + i * 9} y={h - 4 - bodyH / 2 - 2} width={6} height={3.5} rx={0.5} fill="#1d4ed8" />)}
+        </>
+      ) : (
+        device.ports
+          .filter((p) => p.connector !== 'WiFi')
+          .slice(0, 6)
+          .map((p, i) => (
+            <g key={p.id} data-port-id={p.id}>
+              <PortGlyph p={p} x={x + 6 + i * 15} y={h - 4 - bodyH / 2 - 5} />
+            </g>
+          ))
+      )}
+      <T x={x + bodyW + 8} y={h - 4 - bodyH / 2} s={Math.min(8, Math.max(5, bodyH * 0.3))} fill="#e5e7eb" anchor="start">
+        {device.name}
+      </T>
+    </g>
+  )
+}
+
 /* ------------------------------------------------------------------ */
 /* public                                                              */
 /* ------------------------------------------------------------------ */
@@ -478,15 +532,19 @@ export const DeviceFaceplate = memo(function DeviceFaceplate({
   face,
   activePorts,
   portColor,
+  shelfWidth,
 }: {
   device: Device
   face: 'front' | 'rear'
   activePorts?: Set<string>
   portColor?: (p: NetworkInterface) => string | undefined
+  /** width of the shelf a desktop device stands on (defaults to its own panel width) */
+  shelfWidth?: number
 }) {
   const hU = getDeviceHeightU(device) ?? 1
-  const w = RACK_PANEL_MM
+  const w = devicePanelWidth(device)
   const h = hU * U_MM - 0.8
+  if (isShelfDevice(device)) return <ShelfDevice device={device} w={shelfWidth ?? w} h={h} face={face} />
   if (device.build && device.build.chassis.params.formFactor === 'rack') {
     return face === 'front' ? <BuiltFront device={device} w={w} h={h} /> : <BuiltRear device={device} w={w} h={h} activePorts={activePorts} portColor={portColor} />
   }
@@ -570,4 +628,3 @@ export function TowerFace({ device, face }: { device: Device; face: 'front' | 'r
   )
 }
 
-export const RACK_W = RACK_PANEL_MM

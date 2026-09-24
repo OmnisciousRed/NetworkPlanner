@@ -13,6 +13,7 @@ import type {
   PortGroupSpec,
   Project,
   Rack,
+  RackStandard,
 } from '@/models'
 import { SCHEMA_VERSION, nowIso, uid } from '@/models'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
@@ -116,7 +117,9 @@ export function createDeviceFromTemplate(t: DeviceTemplate, overrides: Partial<D
     manufacturer: t.manufacturer,
     model: t.model,
     formFactor: t.formFactor,
+    rackStandard: t.rackStandard,
     heightU: t.heightU,
+    widthMm: t.widthMm,
     depthMm: t.depthMm,
     weightKg: t.weightKg,
     powerW: t.powerW,
@@ -146,10 +149,25 @@ export function createBuiltDevice(kind: DeviceKind, name: string, chassis: Chass
   }
 }
 
-export function createRack(name: string, heightU = 42): Rack {
+export function createRack(name: string, heightU = 42, standard: RackStandard = '19'): Rack {
+  if (standard === '10') {
+    return {
+      id: uid('rack'),
+      name,
+      standard,
+      heightU,
+      depthMm: 300,
+      widthMm: 280,
+      maxLoadKg: 30,
+      emptyWeightKg: Math.round((heightU * 0.4 + 2) * 10) / 10,
+      maxPowerW: 3680,
+      airflowM3h: 200,
+    }
+  }
   return {
     id: uid('rack'),
     name,
+    standard,
     heightU,
     depthMm: 1000,
     widthMm: 600,

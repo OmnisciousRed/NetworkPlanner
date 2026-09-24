@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react'
 import type { Device } from '@/models'
-import { RACK_PANEL_MM, U_MM } from '@/models'
+import { U_MM } from '@/models'
 import { HardwareDefs } from '@/components/hardware/graphics'
-import { DeviceFaceplate, TowerFace } from '@/components/rack/Faceplate'
+import { DeviceFaceplate, TowerFace, devicePanelWidth } from '@/components/rack/Faceplate'
 import { useProjectStore } from '@/store/projectStore'
 import { connectionsOfDevice, getDeviceHeightU } from '@/utils/device'
 import { useViewport } from '../useViewport'
@@ -13,7 +13,7 @@ export function FaceView({ device, face }: { device: Device; face: 'front' | 're
   const { vp, ref, fit } = useViewport({ minZoom: 0.2, maxZoom: 8 })
   const tower = device.build?.chassis.params.formFactor === 'tower'
   const hU = getDeviceHeightU(device) ?? 1
-  const w = tower ? 220 : RACK_PANEL_MM
+  const w = tower ? 220 : devicePanelWidth(device)
   const h = tower ? 470 : hU * U_MM
 
   const active = useMemo(() => {

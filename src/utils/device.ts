@@ -1,4 +1,4 @@
-import type { Connection, Device, HardwareComponent, Id, NetworkInterface, Project } from '@/models'
+import type { Connection, Device, HardwareComponent, Id, NetworkInterface, Project, RackStandard } from '@/models'
 import { formatSpeed } from '@/models'
 import { DEVICE_KINDS } from '@/data/deviceKinds'
 import { estimateBuildPower } from './buildSummary'
@@ -54,6 +54,21 @@ export function getDeviceHeightU(device: Device): number | null {
   }
   if (device.formFactor === 'rack') return device.heightU ?? 1
   return device.heightU ?? null
+}
+
+/**
+ * Panel standard of a device: built rack chassis carry it in their params,
+ * rack gear defaults to 19", small desktop gear that sits on a shelf counts as 10".
+ */
+export function getDeviceRackStandard(device: Device): RackStandard {
+  if (device.build) return device.build.chassis.params.rackStandard ?? '19'
+  if (device.rackStandard) return device.rackStandard
+  return device.formFactor === 'rack' ? '19' : '10'
+}
+
+/** true for devices that stand on a shelf instead of being screwed to the rails */
+export function isShelfDevice(device: Device): boolean {
+  return !device.build && device.formFactor !== 'rack'
 }
 
 export function isRackable(device: Device): boolean {

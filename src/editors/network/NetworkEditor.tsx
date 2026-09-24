@@ -60,6 +60,7 @@ import { DeviceNode } from './DeviceNode'
 import { GroupNode, ZoneNode } from './OverlayNodes'
 import { ConnectionEdge } from './ConnectionEdge'
 import { NetworkLibrary } from './NetworkLibrary'
+import { HelpButton } from '@/components/HelpButton'
 import { ANY_HANDLE, buildGraph, positionKey, type AnyNode, type ConnEdge, type GroupNode as GroupNodeT } from './graph'
 
 const nodeTypes = { device: DeviceNode, devgroup: GroupNode, zone: ZoneNode }
@@ -521,6 +522,9 @@ function NetworkEditorInner() {
             </Button>
           </Tooltip>
           <span className="ml-auto hidden text-xs text-muted-foreground 2xl:inline">Port auf Port ziehen zum Verbinden · Shift+Ziehen = Mehrfachauswahl</span>
+          <div className="ml-auto 2xl:ml-1">
+            <HelpButton section="netzwerk" />
+          </div>
         </div>
         <div className="relative min-h-0 flex-1" ref={wrapper} onDragOver={onDragOver} onDrop={onDrop} data-testid="network-canvas">
           <ReactFlow<AnyNode, ConnEdge>

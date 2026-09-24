@@ -662,6 +662,18 @@ export const COMPONENT_CATALOG: ComponentTemplate[] = [
     specs: { watts: 850, efficiency: '80+ Platinum', hotSwap: false, formFactor: 'ATX', inputConnector: 'C14' },
   },
   {
+    id: 'psu-sfx-450',
+    kind: 'psu',
+    group: 'Power',
+    subgroup: 'PSU',
+    name: 'SFX-Netzteil 450 W (80+ Gold)',
+    manufacturer: 'Corsair',
+    powerW: 0,
+    weightKg: 1.0,
+    size: { w: 125, h: 64 },
+    specs: { watts: 450, efficiency: '80+ Gold', hotSwap: false, formFactor: 'SFX', inputConnector: 'C14' },
+  },
+  {
     id: 'psu-crps-800',
     kind: 'psu',
     group: 'Power',

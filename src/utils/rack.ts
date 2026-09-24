@@ -1,5 +1,19 @@
 import type { Device, Id, Project, Rack } from '@/models'
-import { getDeviceDepth, getDeviceHeightU, getDevicePower, getDeviceWeight } from './device'
+import { INNER_MM, RACK_STANDARD_LABEL, rackStandardOf } from '@/models'
+import { getDeviceDepth, getDeviceHeightU, getDevicePower, getDeviceRackStandard, getDeviceWeight, isShelfDevice } from './device'
+
+/** reason why a device does not fit the rack width, or null */
+export function widthProblem(rack: Rack, device: Device): string | null {
+  const std = rackStandardOf(rack)
+  if (isShelfDevice(device)) {
+    if (device.widthMm && device.widthMm > INNER_MM[std])
+      return `${device.name} ist ${device.widthMm} mm breit – im ${RACK_STANDARD_LABEL[std]}-Rack ist nur ca. ${INNER_MM[std]} mm Platz`
+    return null
+  }
+  if (std === '10' && getDeviceRackStandard(device) === '19')
+    return `${device.name} ist ein 19-Zoll-Gerät (ca. 48 cm breit) und passt nicht in das 10-Zoll-Rack „${rack.name}“`
+  return null
+}
 
 export function devicesInRack(project: Project, rackId: Id): Device[] {
   return Object.values(project.devices)
@@ -29,6 +43,8 @@ export function canPlace(project: Project, rackId: Id, device: Device, positionU
   const h = getDeviceHeightU(device)
   if (!rack) return { ok: false, reason: 'Rack nicht gefunden', conflictIds: [] }
   if (h === null) return { ok: false, reason: `${device.name} ist nicht rackfähig (keine Höheneinheit)`, conflictIds: [] }
+  const wp = widthProblem(rack, device)
+  if (wp) return { ok: false, reason: wp, conflictIds: [] }
   if (positionU < 1 || positionU + h - 1 > rack.heightU)
     return { ok: false, reason: `Passt nicht: U${positionU}–U${positionU + h - 1} liegt außerhalb des ${rack.heightU}U-Racks`, conflictIds: [] }
   const occ = rackOccupancy(project, rackId, device.id)
@@ -151,6 +167,8 @@ export function analyzeRack(project: Project, rack: Rack): RackAnalysis {
   for (const d of devices) {
     const depth = getDeviceDepth(d)
     if (depth && depth > rack.depthMm) warnings.push(`${d.name} (${depth} mm) ist tiefer als das Rack (${rack.depthMm} mm)`)
+    const wp = widthProblem(rack, d)
+    if (wp) warnings.push(wp)
   }
   const heavyHigh = devices.filter((d) => d.kind === 'ups' && d.rackPlacement!.positionU > rack.heightU / 2)
   for (const d of heavyHigh) warnings.push(`${d.name}: Schwere USV besser im unteren Rackbereich montieren`)

@@ -65,6 +65,7 @@ import { HardwareCanvas, type HardwareCanvasHandle, type HwTool } from './Hardwa
 import { ExplodedView } from './ExplodedView'
 import { BlockDiagram } from './BlockDiagram'
 import { FaceView } from './FaceView'
+import { HelpButton } from '@/components/HelpButton'
 import { ChassisPickerPanel } from './ChassisPicker'
 
 const VIEWS: { id: HardwareView; label: string }[] = [
@@ -340,6 +341,9 @@ export function HardwareEditor() {
               </ToolButton>
             </>
           )}
+          <div className="ml-auto">
+            <HelpButton section="hardware" />
+          </div>
         </div>
 
         {/* canvas / views */}

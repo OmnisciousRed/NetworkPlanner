@@ -1,5 +1,5 @@
-import type { ChassisParams, Device, MainboardFormFactor } from '@/models'
-import { DEVICE_HEIGHTS_U } from '@/models'
+import type { ChassisParams, Device, MainboardFormFactor, RackStandard } from '@/models'
+import { DEVICE_HEIGHTS_U, INNER_MM } from '@/models'
 import { updateChassisParams } from '@/store/actions/hardware'
 import { Field, NumberField, Row, Section, SelectField, SwitchField, TextField } from './fields'
 import { cn } from '@/lib/utils'
@@ -31,9 +31,27 @@ export function ChassisParamsForm({ params, onChange }: { params: ChassisParams;
           </Field>
         )}
       </Row>
+      {rack && (
+        <Field label="Rackbreite" hint={params.rackStandard === '10' ? 'passt in 10"- und (mit Adapter) in 19"-Racks' : 'passt nur in 19"-Racks'}>
+          <SelectField<RackStandard>
+            value={params.rackStandard ?? '19'}
+            options={[
+              { value: '19', label: '19 Zoll (Standard-Server)' },
+              { value: '10', label: '10 Zoll (Mini-Rack)' },
+            ]}
+            onChange={(v) =>
+              onChange(
+                v === '10'
+                  ? { rackStandard: v, widthMm: Math.min(params.widthMm, INNER_MM['10']), depthMm: Math.min(params.depthMm, 300) }
+                  : { rackStandard: v, widthMm: Math.max(params.widthMm, 430) },
+              )
+            }
+          />
+        </Field>
+      )}
       <Row>
         <Field label="Breite">
-          <NumberField value={params.widthMm} unit="mm" min={100} max={600} onChange={(v) => onChange({ widthMm: v })} />
+          <NumberField value={params.widthMm} unit="mm" min={100} max={rack ? INNER_MM[params.rackStandard ?? '19'] : 600} onChange={(v) => onChange({ widthMm: v })} />
         </Field>
         <Field label="Tiefe">
           <NumberField value={params.depthMm} unit="mm" min={150} max={1200} onChange={(v) => onChange({ depthMm: v })} />

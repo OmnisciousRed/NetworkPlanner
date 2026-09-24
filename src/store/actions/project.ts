@@ -52,13 +52,15 @@ export async function deleteStoredProject(id: string) {
   await idbDelete(id)
 }
 
-export async function importProjectJson(text: string) {
+export async function importProjectJson(text: string): Promise<boolean> {
   try {
     const p = normalizeProject(JSON.parse(text), { newId: true })
     await openProject(p)
     toast(`„${p.name}“ importiert`, 'success')
+    return true
   } catch (e) {
     toast(`Import fehlgeschlagen: ${(e as Error).message}`, 'error')
+    return false
   }
 }
 

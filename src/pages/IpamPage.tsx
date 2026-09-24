@@ -9,14 +9,16 @@ import { updatePort, updateDevice } from '@/store/actions/devices'
 import { updateProjectMeta } from '@/store/actions/project'
 import { commit } from '@/store/projectStore'
 import { showInNetwork } from '@/store/navigation'
-import { collectIpam, parseCidr, parseIp, subnetUsage, formatIp } from '@/utils/ip'
+import { collectIpam, isValidCidr, parseCidr, parseIp, subnetUsage, formatIp } from '@/utils/ip'
 import { getDevicePorts } from '@/utils/device'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { ask } from '@/components/layout/AskDialog'
 import { Input, NativeSelect } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { SelectField, TextField, Section } from '@/components/inspector/fields'
 import { VlanEditorFields } from '@/components/inspector/VlanInspector'
+import { HelpButton } from '@/components/HelpButton'
 import { cn } from '@/lib/utils'
 
 function VlanTab() {
@@ -466,10 +468,17 @@ function ServicesTab() {
                 size="xs"
                 variant="outline"
                 className="mt-1"
-                onClick={() => {
-                  const dest = window.prompt('Zielnetz (CIDR)', '10.8.0.0/24')
-                  const gw = dest && window.prompt('Gateway', '192.168.10.254')
-                  if (dest && gw) updateDevice(d.id, (x) => (x.routes = [...(x.routes ?? []), { id: uid('rt'), destination: dest, gateway: gw }]), 'Route hinzugefügt')
+                onClick={async () => {
+                  const r = await ask({
+                    title: `Statische Route für ${d.name}`,
+                    description: 'Pakete für das Zielnetz werden an das Gateway weitergeleitet (z. B. ein VPN-Netz hinter einem anderen Router).',
+                    confirmLabel: 'Route hinzufügen',
+                    fields: [
+                      { key: 'dest', label: 'Zielnetz (CIDR)', placeholder: '10.8.0.0/24', validate: (v) => (isValidCidr(v.trim()) ? null : 'Format: 10.8.0.0/24') },
+                      { key: 'gw', label: 'Gateway (IP-Adresse)', placeholder: '192.168.10.254', validate: (v) => (parseIp(v.trim()) !== null ? null : 'Gültige IPv4-Adresse eingeben, z. B. 192.168.10.254') },
+                    ],
+                  })
+                  if (r) updateDevice(d.id, (x) => (x.routes = [...(x.routes ?? []), { id: uid('rt'), destination: r.dest.trim(), gateway: r.gw.trim() }]), 'Route hinzugefügt')
                 }}
               >
                 <Plus /> Route
@@ -555,8 +564,9 @@ export function IpamPage() {
             <TabsTrigger value="services">DHCP, DNS & Routing</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           <SubnetCalculator />
+          <HelpButton section="ipam" />
         </div>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">

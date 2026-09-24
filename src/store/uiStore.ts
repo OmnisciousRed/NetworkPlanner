@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Connection, Device, HardwareComponent, Id } from '@/models'
 
-export type AppView = 'overview' | 'hardware' | 'rack' | 'network' | 'ipam'
+export type AppView = 'overview' | 'hardware' | 'rack' | 'network' | 'ipam' | 'help'
 export type HardwareView = 'interior' | 'exploded' | 'front' | 'rear' | 'block'
 export type NetworkView = 'physical' | 'logical' | 'service'
 
@@ -52,6 +52,10 @@ export interface NetworkOverlays {
 
 interface UiState {
   view: AppView
+  /** view to return to when the manual is closed */
+  prevView?: Exclude<AppView, 'help'>
+  /** manual section to scroll to (heading id) */
+  helpSection?: { id: string; nonce: number }
   hardwareDeviceId?: Id
   hardwareView: HardwareView
   activeRackId?: Id
