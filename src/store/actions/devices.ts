@@ -39,6 +39,22 @@ function uniqueName(project: Project, base: string): string {
   return `${stem}${sep}${String(i).padStart(width, '0')}`
 }
 
+/** "Core Switch 24× SFP+" → "Core Switch", "USV 1500 VA (2U)" → "USV" */
+export function baseNameFromTemplate(name: string): string {
+  const clean = name.replace(/\s*\(.*?\)\s*/g, ' ').trim()
+  const words = clean.split(/\s+/)
+  const out: string[] = []
+  for (const w of words) {
+    if (/[0-9×]/.test(w) || w === '+') break
+    out.push(w)
+  }
+  return out.length ? out.join(' ') : clean
+}
+
+export function uniqueDeviceName(project: Project, base: string): string {
+  return uniqueName(project, /\d+$/.test(base) ? base : `${base} 01`)
+}
+
 export function nextDeviceName(kind: DeviceKind, base?: string): string {
   const label = base ?? DEVICE_KINDS[kind].label
   return uniqueName(getProject(), /\d+$/.test(label) ? label : `${label} 01`)
@@ -66,7 +82,7 @@ export function addDeviceFromTemplate(
   if (!t) return null
   const view = opts.view ?? (DEVICE_KINDS[t.kind].category === 'service' ? 'service' : 'network')
   const device = createDeviceFromTemplate(t, {
-    name: opts.name ?? uniqueName(project, t.kind === 'internet' ? 'Internet' : `${t.name.replace(/\s*\(.*\)$/, '')} 01`),
+    name: opts.name ?? (t.kind === 'internet' ? uniqueName(project, 'Internet') : uniqueDeviceName(project, baseNameFromTemplate(t.name))),
     hostDeviceId: opts.hostDeviceId,
   })
   if (opts.position) device.layout[view] = opts.position

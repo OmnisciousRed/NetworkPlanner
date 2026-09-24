@@ -18,6 +18,15 @@ import {
   type OnSelectionChangeParams,
 } from '@xyflow/react'
 import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalDistributeCenter,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalDistributeCenter,
+  ChevronDown,
   Copy,
   EyeOff,
   Group,
@@ -46,6 +55,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DeviceNode } from './DeviceNode'
 import { GroupNode, ZoneNode } from './OverlayNodes'
 import { ConnectionEdge } from './ConnectionEdge'
@@ -310,6 +320,45 @@ function NetworkEditorInner() {
     setTimeout(() => rf.fitView({ padding: 0.12, duration: 400 }), 80)
   }
 
+  type AlignMode = 'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom' | 'distribute-h' | 'distribute-v'
+  const align = (mode: AlignMode) => {
+    const items = rf.getNodes().filter((n) => n.type === 'device' && selectedDevices.includes(n.id))
+    if (items.length < 2) return
+    const box = (n: AnyNode) => ({ x: n.position.x, y: n.position.y, w: n.measured?.width ?? 200, h: n.measured?.height ?? 90 })
+    const bs = items.map((n) => ({ id: n.id, ...box(n) }))
+    const minX = Math.min(...bs.map((b) => b.x))
+    const maxX = Math.max(...bs.map((b) => b.x + b.w))
+    const minY = Math.min(...bs.map((b) => b.y))
+    const maxY = Math.max(...bs.map((b) => b.y + b.h))
+    const out: Record<Id, Point> = {}
+    const put = (b: (typeof bs)[number], x: number, y: number) => (out[b.id] = { x, y })
+    if (mode === 'left') bs.forEach((b) => put(b, minX, b.y))
+    if (mode === 'right') bs.forEach((b) => put(b, maxX - b.w, b.y))
+    if (mode === 'hcenter') bs.forEach((b) => put(b, (minX + maxX) / 2 - b.w / 2, b.y))
+    if (mode === 'top') bs.forEach((b) => put(b, b.x, minY))
+    if (mode === 'bottom') bs.forEach((b) => put(b, b.x, maxY - b.h))
+    if (mode === 'vcenter') bs.forEach((b) => put(b, b.x, (minY + maxY) / 2 - b.h / 2))
+    if (mode === 'distribute-h') {
+      const sorted = [...bs].sort((a, b) => a.x - b.x)
+      const gap = (maxX - minX - sorted.reduce((s, b) => s + b.w, 0)) / Math.max(1, sorted.length - 1)
+      let x = minX
+      for (const b of sorted) {
+        put(b, x, b.y)
+        x += b.w + gap
+      }
+    }
+    if (mode === 'distribute-v') {
+      const sorted = [...bs].sort((a, b) => a.y - b.y)
+      const gap = (maxY - minY - sorted.reduce((s, b) => s + b.h, 0)) / Math.max(1, sorted.length - 1)
+      let y = minY
+      for (const b of sorted) {
+        put(b, b.x, y)
+        y += b.h + gap
+      }
+    }
+    setDevicePositions(key, out, 'Geräte ausgerichtet')
+  }
+
   const groupSelected = () => {
     if (!selectedDevices.length) return
     const gid = createGroup(selectedDevices, key)
@@ -420,6 +469,42 @@ function NetworkEditorInner() {
               <LayoutTemplate /> Auto-Layout
             </Button>
           </Tooltip>
+          <DropdownMenu>
+            <Tooltip content="Ausrichten & verteilen (mind. 2 Geräte auswählen)">
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="ghost" disabled={selectedDevices.length < 2}>
+                  <AlignStartVertical /> <ChevronDown className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+            </Tooltip>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => align('left')}>
+                <AlignStartVertical /> Links
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('hcenter')}>
+                <AlignCenterVertical /> Horizontal zentrieren
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('right')}>
+                <AlignEndVertical /> Rechts
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('top')}>
+                <AlignStartHorizontal /> Oben
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('vcenter')}>
+                <AlignCenterHorizontal /> Vertikal zentrieren
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('bottom')}>
+                <AlignEndHorizontal /> Unten
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => align('distribute-h')}>
+                <AlignHorizontalDistributeCenter /> Horizontal gleich verteilen
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => align('distribute-v')}>
+                <AlignVerticalDistributeCenter /> Vertikal gleich verteilen
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Tooltip content="Auswahl gruppieren (Strg+G)">
             <Button size="icon-sm" variant="ghost" disabled={!selectedDevices.length} onClick={groupSelected}>
               <Group />

@@ -1,22 +1,27 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { TopBar } from '@/components/layout/TopBar'
 import { Toaster } from '@/components/layout/Toaster'
 import { ProjectsDialog, ShortcutsDialog, WelcomeDialog } from '@/components/layout/Dialogs'
 import { CustomTemplateDialog } from '@/components/layout/CustomTemplateDialog'
 import { Inspector } from '@/components/inspector/Inspector'
-import { HardwareEditor } from '@/editors/hardware/HardwareEditor'
 import { ChassisPickerDialog } from '@/editors/hardware/ChassisPicker'
-import { RackEditor } from '@/editors/rack/RackEditor'
-import { NetworkEditor } from '@/editors/network/NetworkEditor'
-import { IpamPage } from '@/pages/IpamPage'
-import { OverviewPage } from '@/pages/OverviewPage'
 import { useProjectStore } from '@/store/projectStore'
 import { toast, useUiStore } from '@/store/uiStore'
 import { lastProjectId, loadProject } from '@/store/persistence'
 import { saveNow, startAutosave } from '@/store/autosave'
 import { normalizeProject } from '@/utils/importExport'
 import { isEditableTarget, isModKey } from '@/lib/utils'
+
+const HardwareEditor = lazy(() => import('@/editors/hardware/HardwareEditor').then((m) => ({ default: m.HardwareEditor })))
+const RackEditor = lazy(() => import('@/editors/rack/RackEditor').then((m) => ({ default: m.RackEditor })))
+const NetworkEditor = lazy(() => import('@/editors/network/NetworkEditor').then((m) => ({ default: m.NetworkEditor })))
+const IpamPage = lazy(() => import('@/pages/IpamPage').then((m) => ({ default: m.IpamPage })))
+const OverviewPage = lazy(() => import('@/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })))
+
+function Loading() {
+  return <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Lade Editor …</div>
+}
 
 function useGlobalShortcuts() {
   useEffect(() => {
@@ -81,11 +86,13 @@ export function App() {
         <TopBar />
         {ready ? (
           <div className="flex min-h-0 flex-1">
-            {view === 'overview' && <OverviewPage />}
-            {view === 'hardware' && <HardwareEditor />}
-            {view === 'rack' && <RackEditor />}
-            {view === 'network' && <NetworkEditor />}
-            {view === 'ipam' && <IpamPage />}
+            <Suspense fallback={<Loading />}>
+              {view === 'overview' && <OverviewPage />}
+              {view === 'hardware' && <HardwareEditor />}
+              {view === 'rack' && <RackEditor />}
+              {view === 'network' && <NetworkEditor />}
+              {view === 'ipam' && <IpamPage />}
+            </Suspense>
             {view !== 'overview' && view !== 'ipam' && <Inspector />}
           </div>
         ) : (

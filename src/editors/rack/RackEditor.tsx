@@ -243,8 +243,8 @@ export function RackEditor() {
           <Button size="sm" variant="ghost" disabled={!activeRackId} onClick={() => activeRackId && fillWithBlanks(activeRackId)}>
             Blindblenden auffüllen
           </Button>
-          <span className="ml-2 hidden text-xs text-muted-foreground xl:inline">
-            Ziehen zum Einsetzen/Verschieben · aus dem Rack ziehen zum Entfernen · ↑/↓ verschiebt um 1 HE · Doppelklick öffnet den Hardware Builder
+          <span className="ml-2 hidden truncate text-xs text-muted-foreground 2xl:inline">
+            Ziehen = einsetzen/verschieben · herausziehen = entfernen · ↑/↓ = 1 HE · Doppelklick = Hardware Builder
           </span>
           <div className="ml-auto flex items-center gap-0.5">
             <Button size="icon-sm" variant="ghost" onClick={() => api?.zoomOut()}>

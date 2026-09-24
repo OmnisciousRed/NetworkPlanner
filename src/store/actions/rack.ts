@@ -4,6 +4,7 @@ import { createDeviceFromTemplate, createRack } from '@/utils/factory'
 import { canPlace, findFreePosition, rackOccupancy } from '@/utils/rack'
 import { getDeviceHeightU } from '@/utils/device'
 import { commit, getProject } from '../projectStore'
+import { baseNameFromTemplate, uniqueDeviceName } from './devices'
 import { toast } from '../uiStore'
 
 export function addRack(name?: string, heightU = 42): Id {
@@ -80,8 +81,7 @@ export function addRackDeviceFromTemplate(templateId: string, rackId: Id, positi
     toast(check.reason ?? 'Kein Platz', 'error')
     return null
   }
-  const count = Object.values(project.devices).filter((d) => d.templateId === t.id).length
-  tmp.name = `${t.name.replace(/\s*\(.*\)$/, '')} ${String(count + 1).padStart(2, '0')}`
+  tmp.name = uniqueDeviceName(project, baseNameFromTemplate(t.name))
   tmp.rackPlacement = { rackId, positionU, face: 'front' }
   commit(`${tmp.name} ins Rack eingesetzt`, (d) => {
     d.devices[tmp.id] = tmp
